@@ -16,7 +16,12 @@ function clickLoadMoreButtons() {
         conversations.forEach(conversation => {
             const showResolvedButton = conversation.querySelector('.Details-content--closed');
             if (showResolvedButton && showResolvedButton.textContent.trim() === 'Show resolved') {
-                conversation.style.display = 'none';
+                const turboFrame = showResolvedButton.closest('turbo-frame');
+                if (turboFrame) {
+                    turboFrame.style.display = 'none';
+                } else {
+                    conversation.style.display = 'none';
+                }
             }
         });
     }
