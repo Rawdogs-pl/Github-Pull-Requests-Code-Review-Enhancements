@@ -11,18 +11,8 @@ function clickLoadMoreButtons() {
     }
 
     function hideResolvedConversations() {
-        const conversations = document.querySelectorAll('.js-timeline-item.js-timeline-progressive-focus-container');
-
-        conversations.forEach(conversation => {
-            const showResolvedButton = conversation.querySelector('.Details-content--closed');
-            if (showResolvedButton && showResolvedButton.textContent.trim() === 'Show resolved') {
-                const parentTurboFrame = showResolvedButton.closest('turbo-frame');
-                if (parentTurboFrame) {
-                    parentTurboFrame.style.display = 'none';
-                } else {
-                    conversation.style.display = 'none';
-                }
-            }
+        document.querySelectorAll('details[data-resolved="true"]').forEach(element => {
+            element.style.display = 'none';
         });
     }
 
@@ -38,7 +28,7 @@ function clickLoadMoreButtons() {
     window.observer.observe(document.body, {childList: true, subtree: true});
 
     clickButtons();
-    //hideResolvedConversations();
+    hideResolvedConversations();
 }
 chrome.storage.local.get(['extensionState'], async (result) => {
     const state = result.extensionState || 'OFF';
