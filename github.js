@@ -39,7 +39,7 @@ function resolveAllDiscussions() {
         const buttons = form.querySelectorAll('button[type="submit"]');
         buttons.forEach(btn => {
             const buttonText = btn.textContent.trim().toLowerCase();
-            if (buttonText.startsWith('resolve')) {
+            if (buttonText === 'resolve conversation' || buttonText.startsWith('resolve ')) {
                 btn.click();
             }
         });
