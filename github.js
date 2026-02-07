@@ -61,7 +61,7 @@ function resolveAllDiscussions() {
 
     resolveDiscussionsObserver = new MutationObserver((mutationsList) => {
         for (let mutation of mutationsList) {
-            if (mutation.type === 'childList' || mutation.type === 'subtree') {
+            if (mutation.type === 'childList') {
                 const newResolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
                 let hasUnresolved = false;
 
@@ -74,8 +74,10 @@ function resolveAllDiscussions() {
                 });
 
                 // Reset timeout if we found and resolved new discussions
-                if (hasUnresolved && timeoutId) {
-                    clearTimeout(timeoutId);
+                if (hasUnresolved) {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
                     timeoutId = setTimeout(() => {
                         if (resolveDiscussionsObserver) {
                             resolveDiscussionsObserver.disconnect();
@@ -89,7 +91,7 @@ function resolveAllDiscussions() {
 
     resolveDiscussionsObserver.observe(document.body, {childList: true, subtree: true});
 
-    // Stop observing after 10 seconds
+    // Stop observing after 10 seconds if no new discussions are found
     timeoutId = setTimeout(() => {
         if (resolveDiscussionsObserver) {
             resolveDiscussionsObserver.disconnect();
