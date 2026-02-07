@@ -20,19 +20,13 @@
       "128": "images/icon.png"
     }
   },
-  "permissions": ["scripting", "activeTab", "storage"],
-  "commands": {
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Ctrl+B",
-        "mac": "Command+B"
-      }
-    }
-  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://github.com/*/*/pull/*"],
   "content_scripts": [
     {
       "matches": ["https://github.com/*/*/pull/*"],
-      "js": ["github.js"]
+      "js": ["github.js"],
+      "css": ["panel.css"]
     }
   ]
 }
