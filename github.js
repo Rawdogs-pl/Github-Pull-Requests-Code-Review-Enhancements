@@ -37,13 +37,11 @@ function stopAutoLoadMore() {
 
 function resolveAllDiscussions() {
     const resolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
-    let resolvedCount = 0;
 
     resolveButtons.forEach(button => {
         const container = button.closest('[data-review-thread="true"]');
         if (container && container.getAttribute('data-resolved') !== 'true') {
             button.click();
-            resolvedCount++;
         }
     });
 
@@ -67,8 +65,6 @@ function resolveAllDiscussions() {
             clearInterval(checkForNewDiscussions);
         }
     }, 500);
-
-    return resolvedCount;
 }
 
 function hasUnresolvedChildDiscussions(element) {
@@ -84,7 +80,6 @@ function hasUnresolvedChildDiscussions(element) {
 function setAsHidden() {
     const discussions = document.querySelectorAll('[data-review-thread="true"]');
     const regularComments = document.querySelectorAll('.timeline-comment');
-    let hiddenCount = 0;
 
     const hideElement = async (element, delay = 0) => {
         return new Promise((resolve) => {
@@ -136,7 +131,6 @@ function setAsHidden() {
             if (isResolved && !hasUnresolvedChildDiscussions(discussion)) {
                 const success = await hideElement(discussion, delay);
                 if (success) {
-                    hiddenCount++;
                     delay += 300;
                 }
             }
@@ -147,7 +141,6 @@ function setAsHidden() {
             if (!isPartOfDiscussion && !hasUnresolvedChildDiscussions(comment)) {
                 const success = await hideElement(comment, delay);
                 if (success) {
-                    hiddenCount++;
                     delay += 300;
                 }
             }
@@ -155,8 +148,6 @@ function setAsHidden() {
     };
 
     processElements();
-
-    return hiddenCount;
 }
 
 function createControlPanel() {
@@ -287,13 +278,13 @@ function createControlPanel() {
     });
 
     resolveAllBtn.addEventListener('click', () => {
-        const count = resolveAllDiscussions();
-        console.log(`Resolved ${count} discussions`);
+        resolveAllDiscussions();
+        console.log('Resolving all discussions...');
     });
 
     setHiddenBtn.addEventListener('click', () => {
-        const count = setAsHidden();
-        console.log(`Hidden ${count} items`);
+        setAsHidden();
+        console.log('Hiding resolved items...');
     });
 }
 
