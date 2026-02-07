@@ -36,21 +36,21 @@ function stopAutoLoadMore() {
 }
 
 /**
- * Funkcja wymuszająca ponowną recenzję (Re-request review) od Copilota.
+ * Function to trigger a re-request review from Copilot.
  */
 function triggerCopilotRerequest() {
     const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
 
     if (copilotButton) {
         copilotButton.click();
-        console.log('Kliknięto przycisk Re-request dla Copilota.');
+        console.log('Clicked Re-request button for Copilot.');
     } else {
-        console.warn('Nie znaleziono przycisku Re-request dla Copilota. Możliwe, że recenzja jest już w toku.');
+        console.warn('Re-request button for Copilot not found. Review may already be in progress.');
     }
 }
 
 /**
- * Aktualizuje stan przycisku Request Copilot review w zależności od dostępności przycisku Copilot.
+ * Updates the state of the Request Copilot review button based on Copilot button availability.
  */
 function updateCopilotButtonState() {
     const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
@@ -68,7 +68,7 @@ function updateCopilotButtonState() {
 }
 
 /**
- * Rozpoczyna monitorowanie zmian DOM w celu aktualizacji stanu przycisku Copilot.
+ * Starts monitoring DOM changes to update Copilot button state.
  */
 function startCopilotButtonMonitoring() {
     if (copilotButtonObserver) {
@@ -81,12 +81,15 @@ function startCopilotButtonMonitoring() {
         updateCopilotButtonState();
     });
 
-    const targetNode = document.body;
+    // Monitor the reviewers section or fallback to body if not found
+    const targetNode = document.querySelector('.discussion-sidebar') || 
+                       document.querySelector('[data-hpc]') || 
+                       document.body;
     copilotButtonObserver.observe(targetNode, { childList: true, subtree: true });
 }
 
 /**
- * Zatrzymuje monitorowanie zmian DOM dla przycisku Copilot.
+ * Stops monitoring DOM changes for Copilot button.
  */
 function stopCopilotButtonMonitoring() {
     if (copilotButtonObserver) {
