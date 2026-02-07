@@ -6,7 +6,7 @@ Chrome extension that provides advanced controls for managing GitHub Pull Reques
 
 - **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments
 - **Resolve all discussions** – One-click resolution of all unresolved discussions
-- **Hide resolved threads** – Automatically hide resolved discussions and regular comments
+- **Hide resolved threads** – Hide resolved discussions and regular comments with a single click via the **Set as Hidden** button
 - **Control panel** – Easy-to-use UI panel in the lower right corner for managing all features
 
 ## Installation

@@ -3,7 +3,6 @@ let observer = null;
 let resolveDiscussionsObserver = null;
 
 const DOM_UPDATE_DELAY_MS = 300; // Delay between operations to allow DOM updates
-const GITHUB_OUTDATED_BUTTON_SELECTOR = 'button[name="comment[state_event]"][value="outdated"]';
 
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
@@ -22,7 +21,7 @@ function startAutoLoadMore() {
 
     observer = new MutationObserver((mutationsList) => {
         for (let mutation of mutationsList) {
-            if (mutation.type === 'childList' || mutation.type === 'subtree') {
+            if (mutation.type === 'childList') {
                 clickLoadMoreButtons();
             }
         }
@@ -58,18 +57,38 @@ function resolveAllDiscussions() {
 
     // Set up MutationObserver to handle dynamically loaded discussions
     let timeoutId = null;
+    const processedThreads = new Set();
+
+    // Mark initial threads as processed
+    document.querySelectorAll('[data-review-thread="true"]').forEach(thread => {
+        if (thread.getAttribute('data-resolved') !== 'true') {
+            processedThreads.add(thread);
+        }
+    });
 
     resolveDiscussionsObserver = new MutationObserver((mutationsList) => {
         for (let mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                const newResolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 let hasUnresolved = false;
 
-                newResolveButtons.forEach(button => {
-                    const container = button.closest('[data-review-thread="true"]');
-                    if (container && container.getAttribute('data-resolved') !== 'true') {
-                        hasUnresolved = true;
-                        button.click();
+                // Only scan added nodes for resolve buttons
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Check if the node itself is a review thread
+                        const threads = node.matches && node.matches('[data-review-thread="true"]')
+                            ? [node]
+                            : node.querySelectorAll ? Array.from(node.querySelectorAll('[data-review-thread="true"]')) : [];
+
+                        threads.forEach(thread => {
+                            if (!processedThreads.has(thread) && thread.getAttribute('data-resolved') !== 'true') {
+                                processedThreads.add(thread);
+                                const resolveBtn = thread.querySelector('button[value="resolve"], button[name="comment_and_resolve"]');
+                                if (resolveBtn) {
+                                    resolveBtn.click();
+                                    hasUnresolved = true;
+                                }
+                            }
+                        });
                     }
                 });
 
@@ -298,6 +317,12 @@ function createControlPanel() {
                 border-radius: 10px;
                 cursor: pointer;
                 transition: background-color 0.2s;
+                border: none;
+                padding: 0;
+            }
+            #github-pr-control-panel .toggle-switch:focus {
+                outline: 2px solid #0969da;
+                outline-offset: 2px;
             }
             #github-pr-control-panel .toggle-switch.active {
                 background-color: #2da44e;
@@ -337,8 +362,8 @@ function createControlPanel() {
         </style>
         <h3>PR Discussions Control</h3>
         <div class="control-item">
-            <label>Auto Load More</label>
-            <div class="toggle-switch" id="auto-load-toggle"></div>
+            <label for="auto-load-toggle">Auto Load More</label>
+            <button class="toggle-switch" id="auto-load-toggle" role="switch" aria-checked="false" aria-label="Toggle auto load more"></button>
         </div>
         <div class="control-item">
             <button id="resolve-all-btn">Resolve All</button>
@@ -359,6 +384,7 @@ function createControlPanel() {
         autoLoadMoreEnabled = result.autoLoadMoreEnabled || false;
         if (autoLoadMoreEnabled) {
             autoLoadToggle.classList.add('active');
+            autoLoadToggle.setAttribute('aria-checked', 'true');
             startAutoLoadMore();
         }
     });
@@ -370,9 +396,11 @@ function createControlPanel() {
 
         if (autoLoadMoreEnabled) {
             autoLoadToggle.classList.add('active');
+            autoLoadToggle.setAttribute('aria-checked', 'true');
             startAutoLoadMore();
         } else {
             autoLoadToggle.classList.remove('active');
+            autoLoadToggle.setAttribute('aria-checked', 'false');
             stopAutoLoadMore();
         }
     });
