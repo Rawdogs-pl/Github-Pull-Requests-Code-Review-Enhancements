@@ -1,6 +1,7 @@
 let autoLoadMoreEnabled = false;
 let observer = null;
 let isHidingInProgress = false;
+let copilotButtonObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
@@ -31,6 +32,55 @@ function stopAutoLoadMore() {
     if (observer) {
         observer.disconnect();
         observer = null;
+    }
+}
+
+function triggerCopilotRerequest() {
+    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
+
+    if (copilotButton) {
+        copilotButton.click();
+    }
+}
+
+function updateCopilotButtonState() {
+    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
+    const requestButton = document.getElementById('request-copilot-review-btn');
+
+    if (requestButton) {
+        if (copilotButton && !copilotButton.disabled) {
+            requestButton.disabled = false;
+            requestButton.classList.remove('disabled');
+        } else {
+            requestButton.disabled = true;
+            requestButton.classList.add('disabled');
+        }
+    }
+}
+
+function startCopilotButtonMonitoring() {
+    if (copilotButtonObserver) {
+        copilotButtonObserver.disconnect();
+    }
+
+    updateCopilotButtonState();
+
+    let debounceTimer;
+    copilotButtonObserver = new MutationObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateCopilotButtonState();
+        }, 300);
+    });
+
+    const targetNode = document.querySelector('.js-discussion-sidebar-item') || document.body;
+    copilotButtonObserver.observe(targetNode, { childList: true, subtree: true });
+}
+
+function stopCopilotButtonMonitoring() {
+    if (copilotButtonObserver) {
+        copilotButtonObserver.disconnect();
+        copilotButtonObserver = null;
     }
 }
 function resolveAllDiscussions() {
@@ -142,9 +192,23 @@ function createControlPanel() {
     const panel = document.createElement('div');
     panel.id = 'github-pr-control-panel';
 
+    const header = document.createElement('div');
+    header.className = 'panel-header';
+
     const title = document.createElement('h3');
     title.textContent = 'PR Discussions';
-    panel.appendChild(title);
+    header.appendChild(title);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'panel-close-btn';
+    closeBtn.innerHTML = '×';
+    closeBtn.setAttribute('aria-label', 'Close panel');
+    closeBtn.addEventListener('click', () => {
+        panel.style.display = 'none';
+    });
+    header.appendChild(closeBtn);
+
+    panel.appendChild(header);
 
     const autoLoadItem = document.createElement('div');
     autoLoadItem.className = 'control-item';
@@ -173,6 +237,16 @@ function createControlPanel() {
     hideItem.appendChild(hideBtn);
     panel.appendChild(hideItem);
 
+    const copilotItem = document.createElement('div');
+    copilotItem.className = 'control-item';
+    const copilotBtn = document.createElement('button');
+    copilotBtn.id = 'request-copilot-review-btn';
+    copilotBtn.textContent = 'Request Copilot review';
+    copilotBtn.disabled = true;
+    copilotBtn.classList.add('disabled');
+    copilotItem.appendChild(copilotBtn);
+    panel.appendChild(copilotItem);
+
     document.body.appendChild(panel);
 
     const toggle = document.getElementById('auto-load-toggle');
@@ -192,6 +266,9 @@ function createControlPanel() {
 
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
+    document.getElementById('request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
+
+    startCopilotButtonMonitoring();
 }
 
 if (document.readyState === 'loading') {

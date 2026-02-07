@@ -12,11 +12,43 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
+#github-pr-control-panel .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
 #github-pr-control-panel h3 {
-    margin: 0 0 12px 0;
+    margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: #24292f;
+}
+
+#github-pr-control-panel .panel-close-btn {
+    background: transparent;
+    border: none;
+    color: #57606a;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+#github-pr-control-panel .panel-close-btn:hover {
+    color: #24292f;
+}
+
+#github-pr-control-panel .panel-close-btn:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
 }
 
 #github-pr-control-panel .control-item {
@@ -98,4 +130,16 @@
 
 #github-pr-control-panel button:active {
     background-color: #ebecf0;
+}
+
+#github-pr-control-panel button.disabled,
+#github-pr-control-panel button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f6f8fa;
+}
+
+#github-pr-control-panel button.disabled:hover,
+#github-pr-control-panel button:disabled:hover {
+    background-color: #f6f8fa;
 }
