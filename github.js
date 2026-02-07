@@ -34,9 +34,14 @@ function stopAutoLoadMore() {
     }
 }
 function resolveAllDiscussions() {
-    const discussionButtons = document.querySelectorAll('.js-resolvable-timeline-thread-form button[value="resolve"]');
-    discussionButtons.forEach(btn => {
-        btn.click();
+    const forms = document.querySelectorAll('.js-resolvable-timeline-thread-form');
+    forms.forEach(form => {
+        const buttons = form.querySelectorAll('button[type="submit"]');
+        buttons.forEach(btn => {
+            if (btn.textContent.trim() === 'Resolve conversation') {
+                btn.click();
+            }
+        });
     });
 }
 
