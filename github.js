@@ -38,8 +38,8 @@ function resolveAllDiscussions() {
     forms.forEach(form => {
         const buttons = form.querySelectorAll('button[type="submit"]');
         buttons.forEach(btn => {
-            const buttonText = btn.textContent.trim();
-            if (buttonText.includes('Resolve')) {
+            const buttonText = btn.textContent.trim().toLowerCase();
+            if (buttonText.includes('resolve')) {
                 btn.click();
             }
         });
