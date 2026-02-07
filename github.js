@@ -1,6 +1,6 @@
 let autoLoadMoreEnabled = false;
 let observer = null;
-let resolveDiscussionsInterval = null;
+let resolveDiscussionsObserver = null;
 
 const DOM_UPDATE_DELAY_MS = 300; // Delay between operations to allow DOM updates
 const GITHUB_OUTDATED_BUTTON_SELECTOR = 'button[name="comment[state_event]"][value="outdated"]';
@@ -40,40 +40,62 @@ function stopAutoLoadMore() {
 }
 
 function resolveAllDiscussions() {
-    if (resolveDiscussionsInterval) {
-        clearInterval(resolveDiscussionsInterval);
+    if (resolveDiscussionsObserver) {
+        resolveDiscussionsObserver.disconnect();
+        resolveDiscussionsObserver = null;
     }
 
-    const resolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
-
-    resolveButtons.forEach(button => {
+    const resolveButton = (button) => {
         const container = button.closest('[data-review-thread="true"]');
         if (container && container.getAttribute('data-resolved') !== 'true') {
             button.click();
         }
+    };
+
+    // Resolve all currently visible discussions
+    const resolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
+    resolveButtons.forEach(resolveButton);
+
+    // Set up MutationObserver to handle dynamically loaded discussions
+    let timeoutId = null;
+
+    resolveDiscussionsObserver = new MutationObserver((mutationsList) => {
+        for (let mutation of mutationsList) {
+            if (mutation.type === 'childList' || mutation.type === 'subtree') {
+                const newResolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
+                let hasUnresolved = false;
+
+                newResolveButtons.forEach(button => {
+                    const container = button.closest('[data-review-thread="true"]');
+                    if (container && container.getAttribute('data-resolved') !== 'true') {
+                        hasUnresolved = true;
+                        button.click();
+                    }
+                });
+
+                // Reset timeout if we found and resolved new discussions
+                if (hasUnresolved && timeoutId) {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        if (resolveDiscussionsObserver) {
+                            resolveDiscussionsObserver.disconnect();
+                            resolveDiscussionsObserver = null;
+                        }
+                    }, 10000);
+                }
+            }
+        }
     });
 
-    let iterations = 0;
-    const maxIterations = 20; // 20 iterations * 500ms = 10 seconds total timeout
+    resolveDiscussionsObserver.observe(document.body, {childList: true, subtree: true});
 
-    resolveDiscussionsInterval = setInterval(() => {
-        iterations++;
-        const newResolveButtons = document.querySelectorAll('button[value="resolve"], button[name="comment_and_resolve"]');
-        let newResolved = 0;
-
-        newResolveButtons.forEach(button => {
-            const container = button.closest('[data-review-thread="true"]');
-            if (container && container.getAttribute('data-resolved') !== 'true') {
-                button.click();
-                newResolved++;
-            }
-        });
-
-        if (newResolved === 0 || iterations >= maxIterations) {
-            clearInterval(resolveDiscussionsInterval);
-            resolveDiscussionsInterval = null;
+    // Stop observing after 10 seconds
+    timeoutId = setTimeout(() => {
+        if (resolveDiscussionsObserver) {
+            resolveDiscussionsObserver.disconnect();
+            resolveDiscussionsObserver = null;
         }
-    }, 500);
+    }, 10000);
 }
 
 function hasUnresolvedChildDiscussions(element) {
