@@ -35,6 +35,96 @@ function stopAutoLoadMore() {
     }
 }
 
+async function requestCopilotReview() {
+    console.log("%c--- Start skryptu (Tryb: Zamknięcie Warstwy) ---", "color: purple; font-weight: bold;");
+
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const simulateFullInteraction = (el) => {
+        if (!el) return;
+        const events = ['mousedown', 'mouseup', 'click', 'focus', 'focusin'];
+        events.forEach(evt => {
+            const event = evt.includes('focus')
+                ? new FocusEvent(evt, { bubbles: true, cancelable: true })
+                : new MouseEvent(evt, { bubbles: true, cancelable: true, view: window });
+            el.dispatchEvent(event);
+        });
+        if (el.focus) el.focus();
+    };
+
+    try {
+        // 1. Znajdź menu i przycisk sterujący
+        const menuContainer = document.getElementById('reviewers-select-menu');
+        if (!menuContainer) throw new Error("Nie znaleziono #reviewers-select-menu");
+
+        // Szukamy elementu otwierającego (często to <summary> lub <button>)
+        const trigger = menuContainer.querySelector('summary') || menuContainer.querySelector('button') || menuContainer;
+
+        // 2. Otwórz menu
+        const icon = menuContainer.querySelector('svg');
+        simulateFullInteraction(icon || trigger);
+        console.log("1. Menu otwarte.");
+
+        // 3. Fokus na filtrze
+        await wait(500);
+        const filterField = document.getElementById('review-filter-field');
+        if (filterField) {
+            simulateFullInteraction(filterField);
+            filterField.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            console.log("2. Filtr aktywowany.");
+        }
+
+        // 4. Czekaj na opcję i kliknij
+        const waitForElement = (className, text, timeout = 5000) => {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                const interval = setInterval(() => {
+                    const elements = document.getElementsByClassName(className);
+                    const target = Array.from(elements).find(el =>
+                        el.textContent.includes(text) && (el.offsetParent !== null || el.getClientRects().length > 0)
+                    );
+                    if (target) {
+                        clearInterval(interval);
+                        resolve(target);
+                    } else if (Date.now() - startTime > timeout) {
+                        clearInterval(interval);
+                        reject(new Error("Nie znaleziono: " + text));
+                    }
+                }, 150);
+            });
+        };
+
+        const targetElement = await waitForElement('js-extended-description', 'Your AI Pair Programmer');
+        simulateFullInteraction(targetElement);
+        console.log("3. Wybrano opcję.");
+
+        // --- KLUCZOWA CZĘŚĆ: UKRYWANIE WARSTWY ---
+        await wait(600); // Dajmy stronie chwilę na zapisanie wyboru
+
+        console.log("4. Próba ukrycia warstwy...");
+
+        // Metoda A: Jeśli to GitHubowy <details>, zamknij go atrybutem
+        const detailsParent = menuContainer.closest('details');
+        if (detailsParent) {
+            detailsParent.removeAttribute('open');
+            console.log("-> Zamknięto przez atrybut 'open'.");
+        }
+
+        // Metoda B: Ponowne kliknięcie w trigger (toggle off)
+        simulateFullInteraction(trigger);
+
+        // Metoda C: Wysłanie Escape bezpośrednio do pola filtra
+        if (filterField) {
+            filterField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        }
+
+        console.log("%c5. Gotowe! Warstwa powinna zniknąć.", "color: green; font-weight: bold;");
+
+    } catch (error) {
+        console.error("%cBłąd: " + error.message, "color: red;");
+    }
+}
+
 function triggerCopilotRerequest() {
     const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
 
@@ -45,15 +135,15 @@ function triggerCopilotRerequest() {
 
 function updateCopilotButtonState() {
     const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
-    const requestButton = document.getElementById('request-copilot-review-btn');
+    const rerequestButton = document.getElementById('re-request-copilot-review-btn');
 
-    if (requestButton) {
+    if (rerequestButton) {
         if (copilotButton && !copilotButton.disabled) {
-            requestButton.disabled = false;
-            requestButton.classList.remove('disabled');
+            rerequestButton.disabled = false;
+            rerequestButton.classList.remove('disabled');
         } else {
-            requestButton.disabled = true;
-            requestButton.classList.add('disabled');
+            rerequestButton.disabled = true;
+            rerequestButton.classList.add('disabled');
         }
     }
 }
@@ -237,15 +327,23 @@ function createControlPanel() {
     hideItem.appendChild(hideBtn);
     panel.appendChild(hideItem);
 
-    const copilotItem = document.createElement('div');
-    copilotItem.className = 'control-item';
-    const copilotBtn = document.createElement('button');
-    copilotBtn.id = 'request-copilot-review-btn';
-    copilotBtn.textContent = 'Request Copilot review';
-    copilotBtn.disabled = true;
-    copilotBtn.classList.add('disabled');
-    copilotItem.appendChild(copilotBtn);
-    panel.appendChild(copilotItem);
+    const requestCopilotItem = document.createElement('div');
+    requestCopilotItem.className = 'control-item';
+    const requestCopilotBtn = document.createElement('button');
+    requestCopilotBtn.id = 'request-copilot-review-btn';
+    requestCopilotBtn.textContent = 'Request Copilot review';
+    requestCopilotItem.appendChild(requestCopilotBtn);
+    panel.appendChild(requestCopilotItem);
+
+    const rerequestCopilotItem = document.createElement('div');
+    rerequestCopilotItem.className = 'control-item';
+    const rerequestCopilotBtn = document.createElement('button');
+    rerequestCopilotBtn.id = 're-request-copilot-review-btn';
+    rerequestCopilotBtn.textContent = 'Re-request Copilot Review';
+    rerequestCopilotBtn.disabled = true;
+    rerequestCopilotBtn.classList.add('disabled');
+    rerequestCopilotItem.appendChild(rerequestCopilotBtn);
+    panel.appendChild(rerequestCopilotItem);
 
     document.body.appendChild(panel);
 
@@ -266,7 +364,8 @@ function createControlPanel() {
 
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
-    document.getElementById('request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
+    document.getElementById('request-copilot-review-btn').addEventListener('click', requestCopilotReview);
+    document.getElementById('re-request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
 
     startCopilotButtonMonitoring();
 }
