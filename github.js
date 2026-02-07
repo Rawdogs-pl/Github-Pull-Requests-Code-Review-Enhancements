@@ -85,11 +85,8 @@ function startCopilotButtonMonitoring() {
         }, 300);
     });
 
-    // Monitor the reviewers section or fallback to broader containers if not found
-    const targetNode = document.querySelector('.js-discussion-sidebar-item') || 
-                       document.querySelector('.discussion-sidebar') || 
-                       document.querySelector('[data-hpc]') || 
-                       document.body;
+    // Monitor the reviewers section
+    const targetNode = document.querySelector('.js-discussion-sidebar-item') || document.body;
     copilotButtonObserver.observe(targetNode, { childList: true, subtree: true });
 }
 
