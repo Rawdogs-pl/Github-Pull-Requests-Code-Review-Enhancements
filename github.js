@@ -2,12 +2,9 @@ let autoLoadMoreEnabled = false;
 let observer = null;
 let isHidingInProgress = false;
 const DOM_UPDATE_DELAY_MS = 400;
-
-// --- AUTO LOAD MORE (ZOPTYMALIZOWANY) ---
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
-    buttons.forEach(button => { 
-        // Klikamy tylko jeśli przycisk nie jest w trakcie ładowania (GitHub dodaje atrybut disabled)
+    buttons.forEach(button => {
         if (!button.disabled) {
             button.click();
         }
@@ -16,86 +13,70 @@ function clickLoadMoreButtons() {
 
 function startAutoLoadMore() {
     if (observer) observer.disconnect();
-    
-    // Używamy debounce, aby nie wywoływać kliknięć tysiąc razy na sekundę
+
     let debounceTimer;
     observer = new MutationObserver((mutations) => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             clickLoadMoreButtons();
-        }, 500); // Sprawdzaj przyciski max raz na 500ms po zmianach w DOM
+        }, 500);
     });
 
-    // Celujemy w kontener dyskusji zamiast w cały body, żeby było lżej
     const targetNode = document.querySelector('.js-discussion') || document.body;
     observer.observe(targetNode, { childList: true, subtree: true });
     clickLoadMoreButtons();
 }
 
-function stopAutoLoadMore() { 
-    if (observer) { 
-        observer.disconnect(); 
-        observer = null; 
-    } 
+function stopAutoLoadMore() {
+    if (observer) {
+        observer.disconnect();
+        observer = null;
+    }
 }
-
-// --- RESOLVE ALL ---
 function resolveAllDiscussions() {
-    document.querySelectorAll('button').forEach(btn => {
-        if (btn.textContent.includes('Resolve conversation')) {
-            btn.click();
-        }
+    const discussionButtons = document.querySelectorAll('.js-resolvable-timeline-thread-form button[value="resolve"]');
+    discussionButtons.forEach(btn => {
+        btn.click();
     });
 }
 
-// --- LOGIKA HIDE (TWOJA WERSJA Z POPRAWKĄ NA TIMELINEITEM) ---
-
 function isSafeToHide(menuBtn) {
-    // 1. Wyjdź w górę do kontenera sekcji/wątku
     const container = menuBtn.closest('.js-timeline-progressive-focus-container');
 
     if (container) {
-        // 2. Wyszukaj wgłąb czy jest jakikolwiek tekst "Resolve conversation"
-        // innerText zbiera tekst z przycisków i ich spanów
         if (container.innerText.includes('Resolve conversation')) {
-            console.log("⏭️ POMIJAM: W kontenerze znaleziono aktywną dyskusję.");
+            console.log("⏭️ Skipping: Active discussion found in container.");
             return false;
         }
     }
 
-    // Dodatkowe zabezpieczenie: Pomiń główny opis PR
     if (menuBtn.closest('.js-command-palette-pull-body')) return false;
 
-    return true; // Można ukrywać
+    return true;
 }
 
 async function setAsHidden() {
     if (isHidingInProgress) return;
     isHidingInProgress = true;
 
-    // Pobierz wszystkie przyciski menu "..."
     const allButtons = document.querySelectorAll('.timeline-comment-action.Link--secondary.Button--link, summary.timeline-comment-action');
-    
-    // Filtrowanie
+
     const buttonsToProcess = Array.from(allButtons).filter(btn => {
-        // Pomiń już ukryte
         if (btn.closest('.minimized-comment')) return false;
-        // Sprawdź Twój warunek tekstowy w kontenerze
         return isSafeToHide(btn);
     });
 
-    console.log(`🔍 Zidentyfikowano ${buttonsToProcess.length} komentarzy do ukrycia.`);
+    console.log(`🔍 Identified ${buttonsToProcess.length} comments to hide.`);
 
     for (let i = 0; i < buttonsToProcess.length; i++) {
         const btn = buttonsToProcess[i];
         const commentBox = btn.closest('.timeline-comment, .js-comment-container');
         if (!commentBox) continue;
-        
-        console.log(`👉 Ukrywanie ${i + 1}/${buttonsToProcess.length}`);
-        
-        btn.click(); // Otwórz menu
 
-        // Czekaj na przycisk "Hide"
+        console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
+
+        btn.click();
+
         const hideBtn = await new Promise(res => {
             let attempts = 0;
             const check = setInterval(() => {
@@ -111,7 +92,6 @@ async function setAsHidden() {
         if (hideBtn) {
             hideBtn.click();
 
-            // Czekaj na formularz
             const form = await new Promise(res => {
                 let attempts = 0;
                 const check = setInterval(() => {
@@ -126,15 +106,17 @@ async function setAsHidden() {
 
             if (form) {
                 const select = form.querySelector('select[name="classifier"]');
-                if (select) {
-                    select.value = "OUTDATED";
-                    select.dispatchEvent(new Event('change', { bubbles: true }));
-                    await new Promise(r => setTimeout(r, 150));
-                    form.requestSubmit();
+                if (select && select.tagName === 'SELECT') {
+                    const validOptions = Array.from(select.options).map(opt => opt.value);
+                    if (validOptions.includes("OUTDATED")) {
+                        select.value = "OUTDATED";
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                        await new Promise(r => setTimeout(r, 150));
+                        form.requestSubmit();
+                    }
                 }
             }
         } else {
-            // Zamknij menu jeśli nie znaleziono Hide
             const details = btn.closest('details');
             if (details && details.open) btn.click();
         }
@@ -142,26 +124,51 @@ async function setAsHidden() {
         await new Promise(r => setTimeout(r, DOM_UPDATE_DELAY_MS));
     }
 
-    console.log("✅ Koniec operacji.");
+    console.log("✅ Operation complete.");
     isHidingInProgress = false;
 }
 
-// --- PANEL STEROWANIA ---
 function createControlPanel() {
     if (document.getElementById('github-pr-control-panel')) return;
 
     const panel = document.createElement('div');
     panel.id = 'github-pr-control-panel';
-    panel.innerHTML = `
-        <h3>PR Discussions</h3>
-        <div class="control-item"><span>Auto Load</span><button class="toggle-switch" id="auto-load-toggle"></button></div>
-        <div class="control-item"><button id="resolve-all-btn">Resolve All</button></div>
-        <div class="control-item"><button id="set-hidden-btn">Set as Hidden</button></div>
-    `;
+
+    const title = document.createElement('h3');
+    title.textContent = 'PR Discussions';
+    panel.appendChild(title);
+
+    const autoLoadItem = document.createElement('div');
+    autoLoadItem.className = 'control-item';
+    const autoLoadSpan = document.createElement('span');
+    autoLoadSpan.textContent = 'Auto Load';
+    const autoLoadToggle = document.createElement('button');
+    autoLoadToggle.className = 'toggle-switch';
+    autoLoadToggle.id = 'auto-load-toggle';
+    autoLoadItem.appendChild(autoLoadSpan);
+    autoLoadItem.appendChild(autoLoadToggle);
+    panel.appendChild(autoLoadItem);
+
+    const resolveItem = document.createElement('div');
+    resolveItem.className = 'control-item';
+    const resolveBtn = document.createElement('button');
+    resolveBtn.id = 'resolve-all-btn';
+    resolveBtn.textContent = 'Resolve All';
+    resolveItem.appendChild(resolveBtn);
+    panel.appendChild(resolveItem);
+
+    const hideItem = document.createElement('div');
+    hideItem.className = 'control-item';
+    const hideBtn = document.createElement('button');
+    hideBtn.id = 'set-hidden-btn';
+    hideBtn.textContent = 'Set as Hidden';
+    hideItem.appendChild(hideBtn);
+    panel.appendChild(hideItem);
+
     document.body.appendChild(panel);
 
     const toggle = document.getElementById('auto-load-toggle');
-    
+
     chrome.storage.local.get(['autoLoadMoreEnabled'], (res) => {
         autoLoadMoreEnabled = res.autoLoadMoreEnabled || false;
         if (autoLoadMoreEnabled) toggle.classList.add('active');
