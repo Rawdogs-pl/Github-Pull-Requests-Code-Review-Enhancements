@@ -99,3 +99,15 @@
 #github-pr-control-panel button:active {
     background-color: #ebecf0;
 }
+
+#github-pr-control-panel button.disabled,
+#github-pr-control-panel button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f6f8fa;
+}
+
+#github-pr-control-panel button.disabled:hover,
+#github-pr-control-panel button:disabled:hover {
+    background-color: #f6f8fa;
+}

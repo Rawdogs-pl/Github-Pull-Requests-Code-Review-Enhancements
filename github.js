@@ -1,6 +1,7 @@
 let autoLoadMoreEnabled = false;
 let observer = null;
 let isHidingInProgress = false;
+let copilotButtonObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
@@ -31,6 +32,66 @@ function stopAutoLoadMore() {
     if (observer) {
         observer.disconnect();
         observer = null;
+    }
+}
+
+/**
+ * Funkcja wymuszająca ponowną recenzję (Re-request review) od Copilota.
+ */
+function triggerCopilotRerequest() {
+    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
+
+    if (copilotButton) {
+        copilotButton.click();
+        console.log('Kliknięto przycisk Re-request dla Copilota.');
+    } else {
+        console.warn('Nie znaleziono przycisku Re-request dla Copilota. Możliwe, że recenzja jest już w toku.');
+    }
+}
+
+/**
+ * Aktualizuje stan przycisku Request Copilot review w zależności od dostępności przycisku Copilot.
+ */
+function updateCopilotButtonState() {
+    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
+    const requestButton = document.getElementById('request-copilot-review-btn');
+
+    if (requestButton) {
+        if (copilotButton && !copilotButton.disabled) {
+            requestButton.disabled = false;
+            requestButton.classList.remove('disabled');
+        } else {
+            requestButton.disabled = true;
+            requestButton.classList.add('disabled');
+        }
+    }
+}
+
+/**
+ * Rozpoczyna monitorowanie zmian DOM w celu aktualizacji stanu przycisku Copilot.
+ */
+function startCopilotButtonMonitoring() {
+    if (copilotButtonObserver) {
+        copilotButtonObserver.disconnect();
+    }
+
+    updateCopilotButtonState();
+
+    copilotButtonObserver = new MutationObserver(() => {
+        updateCopilotButtonState();
+    });
+
+    const targetNode = document.body;
+    copilotButtonObserver.observe(targetNode, { childList: true, subtree: true });
+}
+
+/**
+ * Zatrzymuje monitorowanie zmian DOM dla przycisku Copilot.
+ */
+function stopCopilotButtonMonitoring() {
+    if (copilotButtonObserver) {
+        copilotButtonObserver.disconnect();
+        copilotButtonObserver = null;
     }
 }
 function resolveAllDiscussions() {
@@ -173,6 +234,16 @@ function createControlPanel() {
     hideItem.appendChild(hideBtn);
     panel.appendChild(hideItem);
 
+    const copilotItem = document.createElement('div');
+    copilotItem.className = 'control-item';
+    const copilotBtn = document.createElement('button');
+    copilotBtn.id = 'request-copilot-review-btn';
+    copilotBtn.textContent = 'Request Copilot review';
+    copilotBtn.disabled = true;
+    copilotBtn.classList.add('disabled');
+    copilotItem.appendChild(copilotBtn);
+    panel.appendChild(copilotItem);
+
     document.body.appendChild(panel);
 
     const toggle = document.getElementById('auto-load-toggle');
@@ -192,6 +263,9 @@ function createControlPanel() {
 
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
+    document.getElementById('request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
+
+    startCopilotButtonMonitoring();
 }
 
 if (document.readyState === 'loading') {
