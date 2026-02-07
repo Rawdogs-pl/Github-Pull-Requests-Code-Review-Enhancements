@@ -192,9 +192,23 @@ function createControlPanel() {
     const panel = document.createElement('div');
     panel.id = 'github-pr-control-panel';
 
+    const header = document.createElement('div');
+    header.className = 'panel-header';
+
     const title = document.createElement('h3');
     title.textContent = 'PR Discussions';
-    panel.appendChild(title);
+    header.appendChild(title);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'panel-close-btn';
+    closeBtn.innerHTML = '×';
+    closeBtn.setAttribute('aria-label', 'Close panel');
+    closeBtn.addEventListener('click', () => {
+        panel.style.display = 'none';
+    });
+    header.appendChild(closeBtn);
+
+    panel.appendChild(header);
 
     const autoLoadItem = document.createElement('div');
     autoLoadItem.className = 'control-item';
