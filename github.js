@@ -103,13 +103,17 @@ function resolveAllDiscussions() {
 // Helper function to wait for element to appear in DOM
 function waitFor(selector, scope = document, timeout = 5000) {
     return new Promise((resolve) => {
-        if (scope.querySelector(selector)) {
-            return resolve(scope.querySelector(selector));
+        const existingElement = scope.querySelector(selector);
+        if (existingElement) {
+            return resolve(existingElement);
         }
+
+        let timeoutId;
 
         const observer = new MutationObserver((mutations, obs) => {
             const element = scope.querySelector(selector);
             if (element) {
+                clearTimeout(timeoutId);
                 obs.disconnect();
                 resolve(element);
             }
@@ -120,7 +124,7 @@ function waitFor(selector, scope = document, timeout = 5000) {
             subtree: true
         });
 
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
             observer.disconnect();
             resolve(scope.querySelector(selector));
         }, timeout);
@@ -211,7 +215,7 @@ function setAsHidden() {
                         selectEl.value = "OUTDATED";
                         selectEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-                        await new Promise(r => setTimeout(r, 200));
+                        await new Promise(resolve => setTimeout(resolve, 200));
 
                         minimizeForm.requestSubmit();
                         console.log(`   ✅ (${i + 1}) Marked as "Outdated" and saved`);
@@ -236,7 +240,7 @@ function setAsHidden() {
             }
 
             // Wait between operations (rate limiting)
-            await new Promise(r => setTimeout(r, DOM_UPDATE_DELAY_MS));
+            await new Promise(resolve => setTimeout(resolve, DOM_UPDATE_DELAY_MS));
         }
         console.log("🏁 Finished processing.");
     };
