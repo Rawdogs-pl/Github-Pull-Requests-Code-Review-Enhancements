@@ -59,13 +59,6 @@ function resolveAllDiscussions() {
     let timeoutId = null;
     const processedThreads = new Set();
 
-    // Mark initial threads as processed
-    document.querySelectorAll('[data-review-thread="true"]').forEach(thread => {
-        if (thread.getAttribute('data-resolved') !== 'true') {
-            processedThreads.add(thread);
-        }
-    });
-
     resolveDiscussionsObserver = new MutationObserver((mutationsList) => {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -81,10 +74,10 @@ function resolveAllDiscussions() {
 
                         threads.forEach(thread => {
                             if (!processedThreads.has(thread) && thread.getAttribute('data-resolved') !== 'true') {
-                                processedThreads.add(thread);
                                 const resolveBtn = thread.querySelector('button[value="resolve"], button[name="comment_and_resolve"]');
                                 if (resolveBtn) {
                                     resolveBtn.click();
+                                    processedThreads.add(thread);
                                     hasUnresolved = true;
                                 }
                             }
@@ -182,8 +175,7 @@ function setAsHidden() {
             const threadContainer = menuBtn.closest('.js-inline-comments-container');
             if (threadContainer) {
                 const hasResolveForm = threadContainer.querySelector('.js-resolvable-timeline-thread-form');
-                const hasResolveText = threadContainer.innerText.includes("Resolve conversation");
-                if (hasResolveForm || hasResolveText) {
+                if (hasResolveForm) {
                     // Check if this thread is already resolved
                     const discussionElement = threadContainer.closest('[data-review-thread="true"]');
                     if (discussionElement && discussionElement.getAttribute('data-resolved') !== 'true') {
@@ -304,7 +296,8 @@ function createControlPanel() {
             #github-pr-control-panel .control-item:last-child {
                 margin-bottom: 0;
             }
-            #github-pr-control-panel label {
+            #github-pr-control-panel label,
+            #github-pr-control-panel span {
                 font-size: 12px;
                 color: #57606a;
                 margin-right: 8px;
@@ -362,8 +355,8 @@ function createControlPanel() {
         </style>
         <h3>PR Discussions Control</h3>
         <div class="control-item">
-            <label for="auto-load-toggle">Auto Load More</label>
-            <button class="toggle-switch" id="auto-load-toggle" role="switch" aria-checked="false" aria-label="Toggle auto load more"></button>
+            <span id="auto-load-label">Auto Load More</span>
+            <button class="toggle-switch" id="auto-load-toggle" role="switch" aria-checked="false" aria-labelledby="auto-load-label"></button>
         </div>
         <div class="control-item">
             <button id="resolve-all-btn">Resolve All</button>

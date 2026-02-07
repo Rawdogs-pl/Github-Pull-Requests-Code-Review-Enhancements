@@ -21,6 +21,7 @@
     }
   },
   "permissions": ["storage"],
+  "host_permissions": ["https://github.com/*/*/pull/*"],
   "content_scripts": [
     {
       "matches": ["https://github.com/*/*/pull/*"],
