@@ -7,7 +7,9 @@ Chrome extension that provides advanced batch operations and controls for managi
 - **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
 - **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection
 - **Batch hide comments** – Hide resolved discussions and regular comments with a single click
-- **Request Copilot review** – Trigger Copilot re-request review with smart availability detection
+- **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available)
+- **Request Copilot review** – Adds Copilot as a reviewer by interacting with the reviewers menu
+- **Re-request Copilot Review** – Trigger Copilot re-request review with smart availability detection
 - **Smart filtering** – Automatically skips PR descriptions and parent elements with unresolved child discussions
 - **Keyboard accessible** – Full keyboard navigation support with visible focus indicators
 - **Reactive updates** – Uses MutationObserver to handle dynamically loaded content efficiently
@@ -62,7 +64,30 @@ Click this button to hide resolved discussions and regular comments by marking t
 - Processes items sequentially with rate limiting (300ms delay)
 - Comprehensive logging for debugging
 
+### Mark as ready
+
+Click this button to mark a draft Pull Request as ready for review. This button is only visible when the PR is in draft state.
+
+**How it works:**
+- Automatically detects the "Ready for review" button on GitHub PR page
+- Button is only visible when PR is in draft state
+- Dynamically monitors DOM changes to show/hide button in real-time
+- Clicks the native GitHub "Ready for review" button when activated
+- Logs actions to console for debugging
+
 ### Request Copilot review
+
+Click this button to add Copilot as a reviewer to the Pull Request.
+
+**How it works:**
+- Opens the reviewers selection menu
+- Activates the filter field to make Copilot option visible
+- Selects "Your AI Pair Programmer" (Copilot) from the menu
+- Closes the menu automatically after selection
+- Uses simulated interactions to ensure reliable operation
+- Comprehensive error handling with console logging for debugging
+
+### Re-request Copilot Review
 
 Click this button to trigger a Copilot re-request review.
 
