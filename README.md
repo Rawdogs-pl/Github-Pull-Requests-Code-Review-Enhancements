@@ -7,10 +7,9 @@ Chrome extension that provides advanced batch operations and controls for managi
 - **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
 - **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection (shows count in parentheses)
 - **Batch hide comments** – Hide resolved discussions and regular comments with a single click (shows count in parentheses)
-- **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available)
-- **Request Copilot review** – Adds Copilot as a reviewer by interacting with the reviewers menu
+- **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available) - no need to search for original GitHub controls, just click on the extension's layer
+- **Request Copilot review** – Adds Copilot as a reviewer by interacting with the reviewers menu - no need to search for original GitHub controls, just click on the extension's layer
 - **Smart filtering** – Automatically skips PR descriptions and parent elements with unresolved child discussions
-- **Keyboard accessible** – Full keyboard navigation support with visible focus indicators
 - **Reactive updates** – Uses MutationObserver to handle dynamically loaded content efficiently
 
 ## Installation
