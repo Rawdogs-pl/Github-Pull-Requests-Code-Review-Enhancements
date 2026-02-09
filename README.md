@@ -7,6 +7,7 @@ Chrome extension that provides advanced batch operations and controls for managi
 - **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
 - **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection
 - **Batch hide comments** – Hide resolved discussions and regular comments with a single click
+- **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available)
 - **Request Copilot review** – Adds Copilot as a reviewer by interacting with the reviewers menu
 - **Re-request Copilot Review** – Trigger Copilot re-request review with smart availability detection
 - **Smart filtering** – Automatically skips PR descriptions and parent elements with unresolved child discussions
@@ -62,6 +63,17 @@ Click this button to hide resolved discussions and regular comments by marking t
 - Uses `waitFor` helper for reliable element detection
 - Processes items sequentially with rate limiting (300ms delay)
 - Comprehensive logging for debugging
+
+### Mark as ready
+
+Click this button to mark a draft Pull Request as ready for review. This button is only visible when the PR is in draft state.
+
+**How it works:**
+- Automatically detects the "Ready for review" button on GitHub PR page
+- Button is only visible when PR is in draft state
+- Dynamically monitors DOM changes to show/hide button in real-time
+- Clicks the native GitHub "Ready for review" button when activated
+- Logs actions to console for debugging
 
 ### Request Copilot review
 

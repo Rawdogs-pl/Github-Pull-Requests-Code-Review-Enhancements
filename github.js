@@ -2,6 +2,7 @@ let autoLoadMoreEnabled = false;
 let observer = null;
 let isHidingInProgress = false;
 let copilotButtonObserver = null;
+let readyForReviewObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
@@ -173,6 +174,65 @@ function stopCopilotButtonMonitoring() {
         copilotButtonObserver = null;
     }
 }
+
+function triggerMarkAsReady() {
+    const readyButton = findReadyForReviewButton();
+    if (readyButton) {
+        readyButton.click();
+        console.log("Clicked 'Ready for review' button");
+    }
+}
+
+function findReadyForReviewButton() {
+    // Szukamy przycisku "Ready for review" na stronie GitHub
+    const buttons = document.querySelectorAll('button');
+    for (const button of buttons) {
+        if (button.textContent.trim().includes('Ready for review')) {
+            return button;
+        }
+    }
+    return null;
+}
+
+function updateMarkAsReadyButtonState() {
+    const readyButton = findReadyForReviewButton();
+    const markAsReadyBtn = document.getElementById('mark-as-ready-btn');
+    const markAsReadyItem = document.getElementById('mark-as-ready-item');
+
+    if (markAsReadyItem) {
+        if (readyButton) {
+            markAsReadyItem.style.display = 'flex';
+        } else {
+            markAsReadyItem.style.display = 'none';
+        }
+    }
+}
+
+function startReadyForReviewMonitoring() {
+    if (readyForReviewObserver) {
+        readyForReviewObserver.disconnect();
+    }
+
+    updateMarkAsReadyButtonState();
+
+    let debounceTimer;
+    readyForReviewObserver = new MutationObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateMarkAsReadyButtonState();
+        }, 300);
+    });
+
+    const targetNode = document.body;
+    readyForReviewObserver.observe(targetNode, { childList: true, subtree: true });
+}
+
+function stopReadyForReviewMonitoring() {
+    if (readyForReviewObserver) {
+        readyForReviewObserver.disconnect();
+        readyForReviewObserver = null;
+    }
+}
 function resolveAllDiscussions() {
     // Note: Text matching may not work in all GitHub language locales.
     // We check for buttons starting with "Resolve " to cover most variations.
@@ -327,6 +387,16 @@ function createControlPanel() {
     hideItem.appendChild(hideBtn);
     panel.appendChild(hideItem);
 
+    const markAsReadyItem = document.createElement('div');
+    markAsReadyItem.className = 'control-item';
+    markAsReadyItem.id = 'mark-as-ready-item';
+    markAsReadyItem.style.display = 'none';
+    const markAsReadyBtn = document.createElement('button');
+    markAsReadyBtn.id = 'mark-as-ready-btn';
+    markAsReadyBtn.textContent = 'Mark as ready';
+    markAsReadyItem.appendChild(markAsReadyBtn);
+    panel.appendChild(markAsReadyItem);
+
     const requestCopilotItem = document.createElement('div');
     requestCopilotItem.className = 'control-item';
     const requestCopilotBtn = document.createElement('button');
@@ -364,10 +434,12 @@ function createControlPanel() {
 
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
+    document.getElementById('mark-as-ready-btn').addEventListener('click', triggerMarkAsReady);
     document.getElementById('request-copilot-review-btn').addEventListener('click', requestCopilotReview);
     document.getElementById('re-request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
 
     startCopilotButtonMonitoring();
+    startReadyForReviewMonitoring();
 }
 
 if (document.readyState === 'loading') {
