@@ -1,8 +1,8 @@
 let autoLoadMoreEnabled = false;
 let observer = null;
 let isHidingInProgress = false;
-let copilotButtonObserver = null;
 let readyForReviewObserver = null;
+let buttonCountsObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
@@ -126,55 +126,6 @@ async function requestCopilotReview() {
     }
 }
 
-function triggerCopilotRerequest() {
-    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
-
-    if (copilotButton) {
-        copilotButton.click();
-    }
-}
-
-function updateCopilotButtonState() {
-    const copilotButton = document.getElementById('re-request-review-copilot-pull-request-reviewer');
-    const rerequestButton = document.getElementById('re-request-copilot-review-btn');
-
-    if (rerequestButton) {
-        if (copilotButton && !copilotButton.disabled) {
-            rerequestButton.disabled = false;
-            rerequestButton.classList.remove('disabled');
-        } else {
-            rerequestButton.disabled = true;
-            rerequestButton.classList.add('disabled');
-        }
-    }
-}
-
-function startCopilotButtonMonitoring() {
-    if (copilotButtonObserver) {
-        copilotButtonObserver.disconnect();
-    }
-
-    updateCopilotButtonState();
-
-    let debounceTimer;
-    copilotButtonObserver = new MutationObserver(() => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            updateCopilotButtonState();
-        }, 300);
-    });
-
-    const targetNode = document.querySelector('.js-discussion-sidebar-item') || document.body;
-    copilotButtonObserver.observe(targetNode, { childList: true, subtree: true });
-}
-
-function stopCopilotButtonMonitoring() {
-    if (copilotButtonObserver) {
-        copilotButtonObserver.disconnect();
-        copilotButtonObserver = null;
-    }
-}
-
 function triggerMarkAsReady() {
     const readyButton = findReadyForReviewButton();
     if (readyButton) {
@@ -233,6 +184,65 @@ function stopReadyForReviewMonitoring() {
         readyForReviewObserver = null;
     }
 }
+
+function countResolvableDiscussions() {
+    const forms = document.querySelectorAll('.js-resolvable-timeline-thread-form');
+    let count = 0;
+    forms.forEach(form => {
+        const buttons = form.querySelectorAll('button[type="submit"]');
+        buttons.forEach(btn => {
+            const buttonText = btn.textContent.trim().toLowerCase();
+            if (buttonText === 'resolve conversation' || buttonText.startsWith('resolve ')) {
+                count++;
+            }
+        });
+    });
+    return count;
+}
+
+function countHideableComments() {
+    const allButtons = document.querySelectorAll('.timeline-comment-action.Link--secondary.Button--link, summary.timeline-comment-action');
+    const buttonsToProcess = Array.from(allButtons).filter(btn => {
+        if (btn.closest('.minimized-comment')) return false;
+        return isSafeToHide(btn);
+    });
+    return buttonsToProcess.length;
+}
+
+function updateButtonCounts() {
+    const resolveBtn = document.getElementById('resolve-all-btn');
+    const hideBtn = document.getElementById('set-hidden-btn');
+
+    if (resolveBtn) {
+        const resolveCount = countResolvableDiscussions();
+        resolveBtn.textContent = `Resolve All (${resolveCount})`;
+    }
+
+    if (hideBtn) {
+        const hideCount = countHideableComments();
+        hideBtn.textContent = `Hide resolved and comments (${hideCount})`;
+    }
+}
+
+function startButtonCountsMonitoring() {
+    if (buttonCountsObserver) {
+        buttonCountsObserver.disconnect();
+    }
+
+    updateButtonCounts();
+
+    let debounceTimer;
+    buttonCountsObserver = new MutationObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            updateButtonCounts();
+        }, 300);
+    });
+
+    const targetNode = document.querySelector('.js-discussion') || document.body;
+    buttonCountsObserver.observe(targetNode, { childList: true, subtree: true });
+}
+
 function resolveAllDiscussions() {
     // Note: Text matching may not work in all GitHub language locales.
     // We check for buttons starting with "Resolve " to cover most variations.
@@ -346,7 +356,7 @@ function createControlPanel() {
     header.className = 'panel-header';
 
     const title = document.createElement('h3');
-    title.textContent = 'PR Discussions';
+    title.textContent = 'Pull Request view';
     header.appendChild(title);
 
     const closeBtn = document.createElement('button');
@@ -363,7 +373,7 @@ function createControlPanel() {
     const autoLoadItem = document.createElement('div');
     autoLoadItem.className = 'control-item';
     const autoLoadSpan = document.createElement('span');
-    autoLoadSpan.textContent = 'Auto Load';
+    autoLoadSpan.textContent = 'Auto Load more';
     const autoLoadToggle = document.createElement('button');
     autoLoadToggle.className = 'toggle-switch';
     autoLoadToggle.id = 'auto-load-toggle';
@@ -375,7 +385,7 @@ function createControlPanel() {
     resolveItem.className = 'control-item';
     const resolveBtn = document.createElement('button');
     resolveBtn.id = 'resolve-all-btn';
-    resolveBtn.textContent = 'Resolve All';
+    resolveBtn.textContent = 'Resolve All (0)';
     resolveItem.appendChild(resolveBtn);
     panel.appendChild(resolveItem);
 
@@ -383,7 +393,7 @@ function createControlPanel() {
     hideItem.className = 'control-item';
     const hideBtn = document.createElement('button');
     hideBtn.id = 'set-hidden-btn';
-    hideBtn.textContent = 'Set as Hidden';
+    hideBtn.textContent = 'Hide resolved and comments (0)';
     hideItem.appendChild(hideBtn);
     panel.appendChild(hideItem);
 
@@ -404,16 +414,6 @@ function createControlPanel() {
     requestCopilotBtn.textContent = 'Request Copilot review';
     requestCopilotItem.appendChild(requestCopilotBtn);
     panel.appendChild(requestCopilotItem);
-
-    const rerequestCopilotItem = document.createElement('div');
-    rerequestCopilotItem.className = 'control-item';
-    const rerequestCopilotBtn = document.createElement('button');
-    rerequestCopilotBtn.id = 're-request-copilot-review-btn';
-    rerequestCopilotBtn.textContent = 'Re-request Copilot Review';
-    rerequestCopilotBtn.disabled = true;
-    rerequestCopilotBtn.classList.add('disabled');
-    rerequestCopilotItem.appendChild(rerequestCopilotBtn);
-    panel.appendChild(rerequestCopilotItem);
 
     document.body.appendChild(panel);
 
@@ -436,10 +436,9 @@ function createControlPanel() {
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
     document.getElementById('mark-as-ready-btn').addEventListener('click', triggerMarkAsReady);
     document.getElementById('request-copilot-review-btn').addEventListener('click', requestCopilotReview);
-    document.getElementById('re-request-copilot-review-btn').addEventListener('click', triggerCopilotRerequest);
 
-    startCopilotButtonMonitoring();
     startReadyForReviewMonitoring();
+    startButtonCountsMonitoring();
 }
 
 if (document.readyState === 'loading') {

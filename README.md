@@ -5,11 +5,10 @@ Chrome extension that provides advanced batch operations and controls for managi
 ## Features
 
 - **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
-- **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection
-- **Batch hide comments** – Hide resolved discussions and regular comments with a single click
+- **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection (shows count in parentheses)
+- **Batch hide comments** – Hide resolved discussions and regular comments with a single click (shows count in parentheses)
 - **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available)
 - **Request Copilot review** – Adds Copilot as a reviewer by interacting with the reviewers menu
-- **Re-request Copilot Review** – Trigger Copilot re-request review with smart availability detection
 - **Smart filtering** – Automatically skips PR descriptions and parent elements with unresolved child discussions
 - **Keyboard accessible** – Full keyboard navigation support with visible focus indicators
 - **Reactive updates** – Uses MutationObserver to handle dynamically loaded content efficiently
@@ -39,7 +38,7 @@ Toggle this switch to automatically load all hidden discussions by clicking "Loa
 
 ### Resolve All
 
-Click this button to automatically resolve all unresolved discussions in the PR.
+Click this button to automatically resolve all unresolved discussions in the PR. The button displays the count of discussions that will be resolved in parentheses.
 
 **How it works:**
 - Scans for all unresolved discussion threads
@@ -49,9 +48,9 @@ Click this button to automatically resolve all unresolved discussions in the PR.
 - Only processes each thread once, after confirming successful resolution
 - Handles dynamically loaded content reactively
 
-### Set as Hidden
+### Hide resolved and comments
 
-Click this button to hide resolved discussions and regular comments by marking them as outdated.
+Click this button to hide resolved discussions and regular comments by marking them as outdated. The button displays the count of items that will be hidden in parentheses.
 
 **How it works:**
 - Identifies all resolved discussions and regular comments
@@ -86,18 +85,6 @@ Click this button to add Copilot as a reviewer to the Pull Request.
 - Closes the menu automatically after selection
 - Uses simulated interactions to ensure reliable operation
 - Comprehensive error handling with console logging for debugging
-
-### Re-request Copilot Review
-
-Click this button to trigger a Copilot re-request review.
-
-**How it works:**
-- Automatically detects the Copilot re-request review button on GitHub PR page
-- Button is only enabled when Copilot re-request is actually available
-- Dynamically monitors DOM changes to update button state in real-time
-- Disabled state is visually indicated (opacity 0.5, cursor not-allowed)
-- Clicks the native GitHub Copilot re-request button when activated
-- Logs actions to console for debugging
 
 ## Technical Details
 
