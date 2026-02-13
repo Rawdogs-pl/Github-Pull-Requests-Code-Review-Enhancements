@@ -347,6 +347,12 @@ async function setAsHidden() {
 }
 
 function createControlPanel() {
+    // Only create panel on actual PR pages, not on agents pages
+    // Uses shared URL matcher from urlMatchers.js
+    if (!isGitHubPRPage(window.location.pathname)) {
+        return;
+    }
+
     if (document.getElementById('github-pr-control-panel')) return;
 
     const panel = document.createElement('div');
