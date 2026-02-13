@@ -25,7 +25,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete') {
         // Treat non-string URLs as "not a PR" and disable the action
         const isGitHubPR = typeof url === 'string' && isGitHubPRPage(url);
-        
         try {
             if (isGitHubPR) {
                 await chrome.action.setIcon({
