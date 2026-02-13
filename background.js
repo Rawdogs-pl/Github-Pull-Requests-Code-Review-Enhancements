@@ -22,8 +22,9 @@ const ICON_DISABLED = {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     const url = changeInfo.url ?? tab.url;
 
-    if (changeInfo.status === 'complete' && typeof url === 'string') {
-        const isGitHubPR = isGitHubPRPage(url);
+    if (changeInfo.status === 'complete') {
+        // Treat non-string URLs as "not a PR" and disable the action
+        const isGitHubPR = typeof url === 'string' && isGitHubPRPage(url);
         
         try {
             if (isGitHubPR) {
@@ -41,7 +42,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             }
         } catch (error) {
             // Silently handle icon errors (e.g., when tab is closed)
-            if (!error.message.includes('No tab with id')) {
+            const message = typeof error?.message === 'string' ? error.message : '';
+            if (!message.includes('No tab with id')) {
                 console.error('Icon update error:', error);
             }
         }
