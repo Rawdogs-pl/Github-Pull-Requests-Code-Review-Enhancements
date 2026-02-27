@@ -224,6 +224,13 @@ function updateButtonCounts() {
     }
 }
 
+function stopButtonCountsMonitoring() {
+    if (buttonCountsObserver) {
+        buttonCountsObserver.disconnect();
+        buttonCountsObserver = null;
+    }
+}
+
 function startButtonCountsMonitoring() {
     if (buttonCountsObserver) {
         buttonCountsObserver.disconnect();
@@ -446,6 +453,54 @@ function createControlPanel() {
     startReadyForReviewMonitoring();
     startButtonCountsMonitoring();
 }
+
+function removeControlPanel() {
+    stopAutoLoadMore();
+    stopReadyForReviewMonitoring();
+    stopButtonCountsMonitoring();
+    const panel = document.getElementById('github-pr-control-panel');
+    if (panel) {
+        panel.remove();
+    }
+}
+
+function handleURLChange() {
+    if (isGitHubPRPage(window.location.pathname)) {
+        if (!document.getElementById('github-pr-control-panel')) {
+            createControlPanel();
+        }
+    } else {
+        removeControlPanel();
+    }
+}
+
+// Detect GitHub SPA navigation.
+// GitHub's Turbo/pjax framework caches history.pushState before content scripts run,
+// so patching history.pushState is unreliable. Instead we use three complementary approaches:
+
+// 1. GitHub-specific SPA navigation events
+['soft-nav:end', 'turbo:load', 'pjax:end'].forEach(eventName => {
+    document.addEventListener(eventName, () => setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS));
+});
+
+// 2. Browser back/forward navigation
+function onPopState() {
+    setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
+}
+window.addEventListener('popstate', onPopState);
+
+// 3. URL polling fallback — covers any navigation mechanism not caught above
+let _lastPathname = window.location.pathname;
+if (typeof _urlPollingInterval !== 'undefined') {
+    clearInterval(_urlPollingInterval);
+}
+var _urlPollingInterval = setInterval(() => {
+    const current = window.location.pathname;
+    if (current !== _lastPathname) {
+        _lastPathname = current;
+        setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
+    }
+}, 500);
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createControlPanel);
