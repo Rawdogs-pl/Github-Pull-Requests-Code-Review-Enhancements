@@ -224,6 +224,13 @@ function updateButtonCounts() {
     }
 }
 
+function stopButtonCountsMonitoring() {
+    if (buttonCountsObserver) {
+        buttonCountsObserver.disconnect();
+        buttonCountsObserver = null;
+    }
+}
+
 function startButtonCountsMonitoring() {
     if (buttonCountsObserver) {
         buttonCountsObserver.disconnect();
@@ -446,6 +453,48 @@ function createControlPanel() {
     startReadyForReviewMonitoring();
     startButtonCountsMonitoring();
 }
+
+function removeControlPanel() {
+    stopAutoLoadMore();
+    stopReadyForReviewMonitoring();
+    stopButtonCountsMonitoring();
+    const panel = document.getElementById('github-pr-control-panel');
+    if (panel) {
+        panel.remove();
+    }
+}
+
+function handleURLChange() {
+    if (isGitHubPRPage(window.location.pathname)) {
+        if (!document.getElementById('github-pr-control-panel')) {
+            createControlPanel();
+        }
+    } else {
+        removeControlPanel();
+    }
+}
+
+// Intercept GitHub SPA navigation (pushState / replaceState)
+try {
+    const originalPushState = history.pushState.bind(history);
+    history.pushState = function (...args) {
+        originalPushState(...args);
+        setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
+    };
+
+    const originalReplaceState = history.replaceState.bind(history);
+    history.replaceState = function (...args) {
+        originalReplaceState(...args);
+        setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
+    };
+} catch (e) {
+    console.error('Failed to intercept history methods:', e);
+}
+
+function onPopState() {
+    setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
+}
+window.addEventListener('popstate', onPopState);
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createControlPanel);
