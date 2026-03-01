@@ -4,20 +4,21 @@ Chrome extension that provides advanced batch operations and controls for managi
 
 ## Features
 
-- **Auto-expand discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
-- **Batch resolve discussions** – One-click resolution of all unresolved discussions with intelligent detection (shows count in parentheses)
+- **Auto-load-more discussions** – Automatically clicks "Load more..." buttons to reveal all PR comments continuously
+- **Batch resolve discussions** – One-click resolution of all unresolved discussions (shows count in parentheses)
 - **Batch hide comments** – Hide resolved only discussions and regular comments with a single click (shows count in parentheses)
-- **Mark as ready** – One-click to mark draft PR as ready for review (visible only when "Ready for review" button is available) - no need to search for original GitHub controls, just click on the extension's layer
+- **Mark as ready** – One-click to mark draft PR as ready for review - no need to search for original GitHub controls, just click on the extension's layer
 - **Request Copilot review** – Adds Copilot as a reviewer - no need to search for original GitHub controls, just click on the extension's layer
-- **Smart filtering** – Automatically skips PR descriptions and parent elements with unresolved child discussions
+- **Smart filtering** – Automatically skips hiding PR description and parent comment with unresolved child discussions
 - **Reactive updates** – Uses MutationObserver to handle dynamically loaded content efficiently
 
 ## Installation
 
-1. Navigate to `chrome://extensions` in your browser
-2. Enable **Developer mode** (toggle in top-right corner)
-3. Click **Load unpacked** and select the extension directory
-4. The extension is ready to use
+1. Download this extension as ZIP file from [releases page](https://github.com/Rawdogs-pl/Github-Pull-Requests-Code-Review-Enhancements/releases). Then unzip downloaded archive. 
+2. Navigate to `chrome://extensions` in your browser.
+3. Enable **Developer mode** (toggle in top-right corner).
+4. Click **Load unpacked** and select the extension directory.
+5. The extension is ready to use.
 
 ## Usage
 
