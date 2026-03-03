@@ -24,8 +24,6 @@ Chrome extension that provides advanced batch operations and controls for managi
 
 When you open a Pull Request on GitHub, a control panel will appear in the lower right corner of the page with the following options:
 
-**Note:** The panel can be closed by clicking the X button in the top-right corner. It will reappear when you reload the page.
-
 ### Auto Load More
 
 Toggle this switch to automatically load all hidden discussions by clicking "Load more..." buttons. 
@@ -104,6 +102,8 @@ Toggle enabled:
 
 <img width="1280" alt="Control panel with toggle enabled" src="https://github.com/user-attachments/assets/8e46b2b7-c88d-4a17-8a15-90fe2e15c248">
 
+**Note:** The panel can be closed by clicking the X button in the top-right corner. It will reappear when you reload the page.
+
 ## Development
 
 The extension consists of:
@@ -114,5 +114,5 @@ The extension consists of:
 
 ## License
 
-See LICENSE file for details.
+The MIT license. See LICENSE file for details.
 
