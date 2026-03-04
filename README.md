@@ -100,6 +100,8 @@ Click this button to add Copilot as a reviewer to the Pull Request.
 
 <img width="1284" height="775" alt="image" src="https://github.com/user-attachments/assets/ae68b95d-c829-4064-8fb6-646006ab5d98" />
 
+---
+
 **Note:** The panel can be closed by clicking the X button in the top-right corner. It will reappear when you reload the page.
 
 ## Development
