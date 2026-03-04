@@ -23,15 +23,13 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://github.com/*/*/pull/*",
-    "https://github.com/*/*/pulls",
-    "https://github.com/*/*/pulls/*"
+    "https://github.com/*/*/pulls"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://github.com/*/*/pull/*",
-        "https://github.com/*/*/pulls",
-        "https://github.com/*/*/pulls/*"
+        "https://github.com/*/*/pulls"
       ],
       "exclude_matches": ["https://github.com/*/*/agents/pull/*"],
       "js": ["urlMatchers.js", "github.js"],
