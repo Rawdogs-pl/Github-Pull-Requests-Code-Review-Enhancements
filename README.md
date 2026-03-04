@@ -96,11 +96,7 @@ Click this button to add Copilot as a reviewer to the Pull Request.
 
 Control panel in the lower right corner:
 
-<img width="1280" alt="Control panel in the lower right corner" src="https://github.com/user-attachments/assets/51c82c41-3491-45c0-a8ec-df2cef192026">
-
-Toggle enabled:
-
-<img width="1280" alt="Control panel with toggle enabled" src="https://github.com/user-attachments/assets/8e46b2b7-c88d-4a17-8a15-90fe2e15c248">
+<img width="1357" height="673" alt="image" src="https://github.com/user-attachments/assets/0c29b777-4e63-480c-b3f5-d8de9d9f2c01" />
 
 **Note:** The panel can be closed by clicking the X button in the top-right corner. It will reappear when you reload the page.
 
