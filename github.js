@@ -474,11 +474,11 @@ function handleURLChange() {
     }
 }
 
-// NOTE: The content script is also injected on /*/*/pulls (PR list) so that it is already
-// running when the user clicks a PR link and GitHub SPA-navigates to /*/*/pull/{number}.
-// The panel itself is never rendered on the list page — createControlPanel() is guarded
-// by isGitHubPRPage() which only matches /*/*/pull/{number} URLs. 
-//
+// NOTE: The content script is injected on all github.com/* pages so that it is already
+// running when the user navigates from any GitHub page (e.g. home, profile, issue list)
+// to a PR via GitHub SPA navigation.
+// The panel itself is never rendered outside of PR pages — createControlPanel() is guarded
+// by isGitHubPRPage() which only matches /*/*/pull/{number} URLs.
 
 // Detect GitHub SPA navigation.
 // GitHub's Turbo/pjax framework caches history.pushState before content scripts run,
@@ -495,7 +495,9 @@ function onPopState() {
 }
 window.addEventListener('popstate', onPopState);
 
-// 3. URL polling fallback — covers any navigation mechanism not caught above
+// 3. URL polling fallback — covers any navigation mechanism not caught above.
+// Uses a 2-second interval to keep overhead low on non-PR pages where the
+// extension now runs due to the broadened content_scripts.matches scope.
 let _lastPathname = window.location.pathname;
 if (typeof _urlPollingInterval !== 'undefined') {
     clearInterval(_urlPollingInterval);
@@ -506,7 +508,7 @@ var _urlPollingInterval = setInterval(() => {
         _lastPathname = current;
         setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
     }
-}, 500);
+}, 2000);
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createControlPanel);
