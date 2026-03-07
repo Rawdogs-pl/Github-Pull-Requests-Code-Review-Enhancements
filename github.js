@@ -495,7 +495,9 @@ function onPopState() {
 }
 window.addEventListener('popstate', onPopState);
 
-// 3. URL polling fallback — covers any navigation mechanism not caught above
+// 3. URL polling fallback — covers any navigation mechanism not caught above.
+// Uses a 2-second interval to keep overhead low on non-PR pages where the
+// extension now runs due to the broadened content_scripts.matches scope.
 let _lastPathname = window.location.pathname;
 if (typeof _urlPollingInterval !== 'undefined') {
     clearInterval(_urlPollingInterval);
@@ -506,7 +508,7 @@ var _urlPollingInterval = setInterval(() => {
         _lastPathname = current;
         setTimeout(handleURLChange, DOM_UPDATE_DELAY_MS);
     }
-}, 500);
+}, 2000);
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createControlPanel);
