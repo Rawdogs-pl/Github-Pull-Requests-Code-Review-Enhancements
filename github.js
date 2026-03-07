@@ -474,11 +474,11 @@ function handleURLChange() {
     }
 }
 
-// NOTE: The content script is also injected on /*/*/pulls (PR list) so that it is already
-// running when the user clicks a PR link and GitHub SPA-navigates to /*/*/pull/{number}.
-// The panel itself is never rendered on the list page — createControlPanel() is guarded
-// by isGitHubPRPage() which only matches /*/*/pull/{number} URLs. 
-//
+// NOTE: The content script is injected on all github.com/* pages so that it is already
+// running when the user navigates from any GitHub page (e.g. home, profile, issue list)
+// to a PR via GitHub SPA navigation.
+// The panel itself is never rendered outside of PR pages — createControlPanel() is guarded
+// by isGitHubPRPage() which only matches /*/*/pull/{number} URLs.
 
 // Detect GitHub SPA navigation.
 // GitHub's Turbo/pjax framework caches history.pushState before content scripts run,
