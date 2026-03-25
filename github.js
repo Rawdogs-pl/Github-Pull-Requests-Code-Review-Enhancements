@@ -126,9 +126,9 @@ async function requestCopilotReview() {
 
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
+    } finally {
+        window.scrollTo(savedScrollX, savedScrollY);
     }
-
-    window.scrollTo(savedScrollX, savedScrollY);
 }
 
 function triggerMarkAsReady() {
@@ -311,6 +311,9 @@ async function setAsHidden() {
     if (isHidingInProgress) return;
     isHidingInProgress = true;
 
+    const savedScrollX = window.scrollX;
+    const savedScrollY = window.scrollY;
+
     const allButtons = document.querySelectorAll('.timeline-comment-action.Link--secondary.Button--link, summary.timeline-comment-action');
 
     const buttonsToProcess = Array.from(allButtons).filter(btn => {
@@ -373,6 +376,7 @@ async function setAsHidden() {
     }
 
     console.log("✅ Operation complete.");
+    window.scrollTo(savedScrollX, savedScrollY);
     isHidingInProgress = false;
 }
 
