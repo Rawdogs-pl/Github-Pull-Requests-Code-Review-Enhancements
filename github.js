@@ -285,6 +285,28 @@ function isSafeToHide(menuBtn) {
     return true;
 }
 
+/**
+ * Polls conditionFn at intervalMs milliseconds up to maxAttempts times.
+ * Resolves with the first truthy result, or null if the timeout is reached.
+ * @param {Function} conditionFn - Function returning a truthy value when the condition is met.
+ * @param {number} intervalMs - Polling interval in milliseconds.
+ * @param {number} maxAttempts - Maximum number of polling attempts before giving up.
+ * @returns {Promise<*>} Resolves with the truthy result or null on timeout.
+ */
+function waitForCondition(conditionFn, intervalMs = 100, maxAttempts = 10) {
+    return new Promise(resolve => {
+        let attempts = 0;
+        const check = setInterval(() => {
+            attempts++;
+            const result = conditionFn();
+            if (result || attempts >= maxAttempts) {
+                clearInterval(check);
+                resolve(result || null);
+            }
+        }, intervalMs);
+    });
+}
+
 async function setAsHidden() {
     if (isHidingInProgress) return;
     isHidingInProgress = true;
@@ -305,37 +327,21 @@ async function setAsHidden() {
 
         console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
 
-        btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+        btn.scrollIntoView({ behavior: 'auto', block: 'center' });
         await new Promise(r => setTimeout(r, 100));
 
         btn.click();
 
-        const hideBtn = await new Promise(res => {
-            let attempts = 0;
-            const check = setInterval(() => {
-                const found = commentBox.querySelector('.js-comment-hide-button');
-                if (found || attempts > 10) {
-                    clearInterval(check);
-                    res(found);
-                }
-                attempts++;
-            }, 100);
-        });
+        const hideBtn = await waitForCondition(
+            () => commentBox.querySelector('.js-comment-hide-button')
+        );
 
         if (hideBtn) {
             hideBtn.click();
 
-            const form = await new Promise(res => {
-                let attempts = 0;
-                const check = setInterval(() => {
-                    const f = commentBox.querySelector('form[action*="minimize"]');
-                    if (f || attempts > 10) {
-                        clearInterval(check);
-                        res(f);
-                    }
-                    attempts++;
-                }, 100);
-            });
+            const form = await waitForCondition(
+                () => commentBox.querySelector('form[action*="minimize"]')
+            );
 
             if (form) {
                 const select = form.querySelector('select[name="classifier"]');
@@ -348,19 +354,13 @@ async function setAsHidden() {
                         form.requestSubmit();
 
                         // Wait until the comment is actually minimized (DOM confirms it) or timeout (2s)
-                        await new Promise(res => {
-                            let attempts = 0;
-                            const check = setInterval(() => {
-                                const minimized = !document.body.contains(commentBox) ||
-                                    commentBox.querySelector('.minimized-comment') ||
-                                    commentBox.querySelector('form[action*="unminimize"]');
-                                if (minimized || attempts > 20) {
-                                    clearInterval(check);
-                                    res();
-                                }
-                                attempts++;
-                            }, 100);
-                        });
+                        await waitForCondition(
+                            () => !document.body.contains(commentBox) ||
+                                commentBox.querySelector('.minimized-comment') ||
+                                commentBox.querySelector('form[action*="unminimize"]'),
+                            100,
+                            20
+                        );
                     }
                 }
             }
