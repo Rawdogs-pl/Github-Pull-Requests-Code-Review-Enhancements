@@ -39,6 +39,9 @@ function stopAutoLoadMore() {
 async function requestCopilotReview() {
     console.log("%c--- Script Start (Mode: Close Layer) ---", "color: purple; font-weight: bold;");
 
+    const savedScrollX = window.scrollX;
+    const savedScrollY = window.scrollY;
+
     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const simulateFullInteraction = (el) => {
@@ -124,6 +127,8 @@ async function requestCopilotReview() {
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
     }
+
+    window.scrollTo(savedScrollX, savedScrollY);
 }
 
 function triggerMarkAsReady() {
@@ -300,6 +305,9 @@ async function setAsHidden() {
 
         console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
 
+        btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+        await new Promise(r => setTimeout(r, 100));
+
         btn.click();
 
         const hideBtn = await new Promise(res => {
@@ -338,6 +346,21 @@ async function setAsHidden() {
                         select.dispatchEvent(new Event('change', { bubbles: true }));
                         await new Promise(r => setTimeout(r, 150));
                         form.requestSubmit();
+
+                        // Wait until the comment is actually minimized (DOM confirms it) or timeout (2s)
+                        await new Promise(res => {
+                            let attempts = 0;
+                            const check = setInterval(() => {
+                                const minimized = !document.body.contains(commentBox) ||
+                                    commentBox.querySelector('.minimized-comment') ||
+                                    commentBox.querySelector('form[action*="unminimize"]');
+                                if (minimized || attempts > 20) {
+                                    clearInterval(check);
+                                    res();
+                                }
+                                attempts++;
+                            }, 100);
+                        });
                     }
                 }
             }
