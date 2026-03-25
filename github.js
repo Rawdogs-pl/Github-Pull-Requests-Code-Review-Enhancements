@@ -314,70 +314,75 @@ async function setAsHidden() {
     const savedScrollX = window.scrollX;
     const savedScrollY = window.scrollY;
 
-    const allButtons = document.querySelectorAll('.timeline-comment-action.Link--secondary.Button--link, summary.timeline-comment-action');
+    try {
+        const allButtons = document.querySelectorAll('.timeline-comment-action.Link--secondary.Button--link, summary.timeline-comment-action');
 
-    const buttonsToProcess = Array.from(allButtons).filter(btn => {
-        if (btn.closest('.minimized-comment')) return false;
-        return isSafeToHide(btn);
-    });
+        const buttonsToProcess = Array.from(allButtons).filter(btn => {
+            if (btn.closest('.minimized-comment')) return false;
+            return isSafeToHide(btn);
+        });
 
-    console.log(`🔍 Identified ${buttonsToProcess.length} comments to hide.`);
+        console.log(`🔍 Identified ${buttonsToProcess.length} comments to hide.`);
 
-    for (let i = 0; i < buttonsToProcess.length; i++) {
-        const btn = buttonsToProcess[i];
-        const commentBox = btn.closest('.timeline-comment, .js-comment-container');
-        if (!commentBox) continue;
+        for (let i = 0; i < buttonsToProcess.length; i++) {
+            const btn = buttonsToProcess[i];
+            const commentBox = btn.closest('.timeline-comment, .js-comment-container');
+            if (!commentBox) continue;
 
-        console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
+            console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
 
-        btn.scrollIntoView({ behavior: 'auto', block: 'center' });
-        await new Promise(r => setTimeout(r, 100));
+            btn.scrollIntoView({ behavior: 'auto', block: 'center' });
+            await new Promise(r => setTimeout(r, 100));
 
-        btn.click();
+            btn.click();
 
-        const hideBtn = await waitForCondition(
-            () => commentBox.querySelector('.js-comment-hide-button')
-        );
-
-        if (hideBtn) {
-            hideBtn.click();
-
-            const form = await waitForCondition(
-                () => commentBox.querySelector('form[action*="minimize"]')
+            const hideBtn = await waitForCondition(
+                () => commentBox.querySelector('.js-comment-hide-button')
             );
 
-            if (form) {
-                const select = form.querySelector('select[name="classifier"]');
-                if (select && select.tagName === 'SELECT') {
-                    const validOptions = Array.from(select.options).map(opt => opt.value);
-                    if (validOptions.includes("OUTDATED")) {
-                        select.value = "OUTDATED";
-                        select.dispatchEvent(new Event('change', { bubbles: true }));
-                        await new Promise(r => setTimeout(r, 150));
-                        form.requestSubmit();
+            if (hideBtn) {
+                hideBtn.click();
 
-                        // Wait until the comment is actually minimized (DOM confirms it) or timeout (2s)
-                        await waitForCondition(
-                            () => !document.body.contains(commentBox) ||
-                                commentBox.querySelector('.minimized-comment') ||
-                                commentBox.querySelector('form[action*="unminimize"]'),
-                            100,
-                            20
-                        );
+                const form = await waitForCondition(
+                    () => commentBox.querySelector('form[action*="minimize"]')
+                );
+
+                if (form) {
+                    const select = form.querySelector('select[name="classifier"]');
+                    if (select && select.tagName === 'SELECT') {
+                        const validOptions = Array.from(select.options).map(opt => opt.value);
+                        if (validOptions.includes("OUTDATED")) {
+                            select.value = "OUTDATED";
+                            select.dispatchEvent(new Event('change', { bubbles: true }));
+                            await new Promise(r => setTimeout(r, 150));
+                            form.requestSubmit();
+
+                            // Wait until the comment is actually minimized (DOM confirms it) or timeout (2s)
+                            await waitForCondition(
+                                () => !document.body.contains(commentBox) ||
+                                    commentBox.querySelector('.minimized-comment') ||
+                                    commentBox.querySelector('form[action*="unminimize"]'),
+                                100,
+                                20
+                            );
+                        }
                     }
                 }
+            } else {
+                const details = btn.closest('details');
+                if (details && details.open) btn.click();
             }
-        } else {
-            const details = btn.closest('details');
-            if (details && details.open) btn.click();
+
+            await new Promise(r => setTimeout(r, DOM_UPDATE_DELAY_MS));
         }
 
-        await new Promise(r => setTimeout(r, DOM_UPDATE_DELAY_MS));
+        console.log("✅ Operation complete.");
+    } catch (error) {
+        console.error("❌ Error in setAsHidden: " + error.message, error);
+    } finally {
+        window.scrollTo(savedScrollX, savedScrollY);
+        isHidingInProgress = false;
     }
-
-    console.log("✅ Operation complete.");
-    window.scrollTo(savedScrollX, savedScrollY);
-    isHidingInProgress = false;
 }
 
 function createControlPanel() {
