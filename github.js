@@ -127,7 +127,12 @@ async function requestCopilotReview() {
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
     } finally {
-        window.scrollTo(savedScrollX, savedScrollY);
+        // Restore scroll immediately, then schedule two re-applications to override
+        // GitHub's async reviewer-assignment response that triggers its own scroll ~500ms later.
+        const restoreScroll = () => window.scrollTo(savedScrollX, savedScrollY);
+        restoreScroll();
+        setTimeout(restoreScroll, 700);
+        setTimeout(restoreScroll, 1500);
     }
 }
 
@@ -331,13 +336,15 @@ async function setAsHidden() {
 
             console.log(`👉 Hiding ${i + 1}/${buttonsToProcess.length}`);
 
-            btn.scrollIntoView({ behavior: 'auto', block: 'center' });
-            await new Promise(r => setTimeout(r, 100));
+            btn.scrollIntoView({ behavior: 'instant', block: 'center' });
+            await new Promise(r => setTimeout(r, 300));
 
             btn.click();
 
             const hideBtn = await waitForCondition(
-                () => commentBox.querySelector('.js-comment-hide-button')
+                () => commentBox.querySelector('.js-comment-hide-button'),
+                100,
+                20
             );
 
             if (hideBtn) {
@@ -357,13 +364,13 @@ async function setAsHidden() {
                             await new Promise(r => setTimeout(r, 150));
                             form.requestSubmit();
 
-                            // Wait until the comment is actually minimized (DOM confirms it) or timeout (2s)
+                            // Wait until the comment is actually minimized (DOM confirms it) or timeout (4s)
                             await waitForCondition(
                                 () => !document.body.contains(commentBox) ||
                                     commentBox.querySelector('.minimized-comment') ||
                                     commentBox.querySelector('form[action*="unminimize"]'),
                                 100,
-                                20
+                                40
                             );
                         }
                     }
