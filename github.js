@@ -127,7 +127,12 @@ async function requestCopilotReview() {
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
     } finally {
+        // GitHub fires several async scrolls after reviewer assignment (sidebar focus, AJAX response).
+        // Restore immediately and attach a scroll guard that fights back against all of them for 2s.
         window.scrollTo(savedScrollX, savedScrollY);
+        const scrollGuard = () => window.scrollTo(savedScrollX, savedScrollY);
+        window.addEventListener('scroll', scrollGuard, { passive: true });
+        setTimeout(() => window.removeEventListener('scroll', scrollGuard), 2000);
     }
 }
 
