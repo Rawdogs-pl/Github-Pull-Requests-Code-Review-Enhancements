@@ -53,7 +53,7 @@ async function requestCopilotReview() {
                 : new MouseEvent(evt, { bubbles: true, cancelable: true, view: window });
             el.dispatchEvent(event);
         });
-        if (el.focus) el.focus();
+        if (el.focus) el.focus({ preventScroll: true });
     };
 
     try {
@@ -127,12 +127,7 @@ async function requestCopilotReview() {
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
     } finally {
-        // Restore scroll immediately, then schedule two re-applications to override
-        // GitHub's async reviewer-assignment response that triggers its own scroll ~500ms later.
-        const restoreScroll = () => window.scrollTo(savedScrollX, savedScrollY);
-        restoreScroll();
-        setTimeout(restoreScroll, 700);
-        setTimeout(restoreScroll, 1500);
+        window.scrollTo(savedScrollX, savedScrollY);
     }
 }
 
@@ -342,7 +337,7 @@ async function setAsHidden() {
             btn.click();
 
             const hideBtn = await waitForCondition(
-                () => commentBox.querySelector('.js-comment-hide-button'),
+                () => document.querySelector('.js-comment-hide-button'),
                 100,
                 20
             );
@@ -351,7 +346,9 @@ async function setAsHidden() {
                 hideBtn.click();
 
                 const form = await waitForCondition(
-                    () => commentBox.querySelector('form[action*="minimize"]')
+                    () => document.querySelector('form[action*="minimize"]'),
+                    100,
+                    20
                 );
 
                 if (form) {
