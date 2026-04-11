@@ -3,7 +3,9 @@ let observer = null;
 let isHidingInProgress = false;
 let readyForReviewObserver = null;
 let buttonCountsObserver = null;
+let sidebarVisibilityObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
+const STICKY_SIDEBAR_TOP_OFFSET = 80;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
     buttons.forEach(button => {
@@ -353,6 +355,69 @@ async function setAsHidden() {
     isHidingInProgress = false;
 }
 
+function observeVisibility(element) {
+    let isFixed = false;
+    let placeholder = null;
+    let originalCssText = '';
+
+    const intersectionObserver = new IntersectionObserver(
+        ([entry]) => {
+            if (!entry.isIntersecting && !isFixed) {
+                const rect = element.getBoundingClientRect();
+                const computedMargin = getComputedStyle(element).margin;
+                originalCssText = element.style.cssText;
+
+                placeholder = document.createElement('div');
+                placeholder.style.cssText = `
+                    height: ${rect.height}px;
+                    width: ${rect.width}px;
+                    margin: ${computedMargin};
+                    visibility: hidden;
+                    pointer-events: none;
+                    flex-shrink: 0;
+                `;
+                element.parentNode.insertBefore(placeholder, element);
+
+                element.style.cssText = originalCssText + `
+                    position: fixed !important;
+                    top: ${STICKY_SIDEBAR_TOP_OFFSET}px;
+                    width: ${rect.width}px;
+                    background: #0c1117;
+                    z-index: 9999;
+                `;
+
+                intersectionObserver.unobserve(element);
+                intersectionObserver.observe(placeholder);
+                isFixed = true;
+
+            } else if (entry.isIntersecting && isFixed) {
+                element.style.cssText = originalCssText;
+
+                intersectionObserver.unobserve(placeholder);
+                placeholder.remove();
+                placeholder = null;
+                intersectionObserver.observe(element);
+                isFixed = false;
+            }
+        },
+        { threshold: 0 }
+    );
+
+    intersectionObserver.observe(element);
+
+    return {
+        disconnect() {
+            intersectionObserver.disconnect();
+            if (isFixed && placeholder) {
+                element.style.cssText = originalCssText;
+                placeholder.remove();
+                placeholder = null;
+                isFixed = false;
+            }
+        },
+    };
+}
+
 function createControlPanel() {
     // Only create panel on actual PR pages, not on agents pages
     // Uses shared URL matcher from urlMatchers.js
@@ -452,12 +517,21 @@ function createControlPanel() {
 
     startReadyForReviewMonitoring();
     startButtonCountsMonitoring();
+
+    const sidebar = document.querySelector('.js-issue-sidebar-form');
+    if (sidebar) {
+        sidebarVisibilityObserver = observeVisibility(sidebar);
+    }
 }
 
 function removeControlPanel() {
     stopAutoLoadMore();
     stopReadyForReviewMonitoring();
     stopButtonCountsMonitoring();
+    if (sidebarVisibilityObserver) {
+        sidebarVisibilityObserver.disconnect();
+        sidebarVisibilityObserver = null;
+    }
     const panel = document.getElementById('github-pr-control-panel');
     if (panel) {
         panel.remove();
