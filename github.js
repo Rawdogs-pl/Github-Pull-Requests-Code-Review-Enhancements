@@ -52,7 +52,7 @@ async function requestCopilotReview() {
                 : new MouseEvent(evt, { bubbles: true, cancelable: true, view: window });
             el.dispatchEvent(event);
         });
-        if (el.focus) el.focus();
+        if (el.focus) el.focus({ preventScroll: true });
     };
 
     try {
@@ -98,11 +98,17 @@ async function requestCopilotReview() {
         };
 
         const targetElement = await waitForElement('js-extended-description', 'Your AI Pair Programmer');
+        const scrollYBeforeRequest = window.scrollY;
         simulateFullInteraction(targetElement);
         console.log("3. Option selected.");
 
         // --- KEY SECTION: HIDE LAYER ---
         await wait(600); // Give the page a moment to save the selection
+
+        // Restore scroll position in case GitHub's XHR response handler reset it
+        if (window.scrollY !== scrollYBeforeRequest) {
+            window.scrollTo({ top: scrollYBeforeRequest, behavior: 'instant' });
+        }
 
         console.log("4. Attempting to hide layer...");
 
