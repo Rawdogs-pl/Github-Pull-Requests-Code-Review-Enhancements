@@ -394,13 +394,11 @@ function observeVisibility(element) {
                 `;
                 element.parentNode.insertBefore(placeholder, element);
 
-                element.style.cssText = originalCssText + `
-                    position: fixed !important;
-                    top: ${STICKY_SIDEBAR_TOP_OFFSET}px;
-                    width: ${rect.width}px;
-                    background: #0c1117;
-                    z-index: 9999;
-                `;
+                element.style.cssText = originalCssText;
+                element.style.setProperty('position', 'fixed', 'important');
+                element.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`);
+                element.style.setProperty('width', `${rect.width}px`);
+                element.style.setProperty('z-index', '9999');
 
                 intersectionObserver.unobserve(element);
                 intersectionObserver.observe(placeholder);
@@ -558,6 +556,17 @@ function handleURLChange() {
     if (isGitHubPRPage(window.location.pathname)) {
         if (!document.getElementById('github-pr-control-panel')) {
             createControlPanel();
+        } else {
+            // Re-select the sidebar on every PR navigation (SPA PR→PR) so the observer
+            // is always attached to the current page's sidebar element.
+            if (sidebarVisibilityObserver) {
+                sidebarVisibilityObserver.disconnect();
+                sidebarVisibilityObserver = null;
+            }
+            const sidebar = document.querySelector('.js-issue-sidebar-form');
+            if (sidebar) {
+                sidebarVisibilityObserver = observeVisibility(sidebar);
+            }
         }
     } else {
         removeControlPanel();
