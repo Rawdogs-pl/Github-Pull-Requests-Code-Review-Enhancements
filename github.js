@@ -98,16 +98,26 @@ async function requestCopilotReview() {
         };
 
         const targetElement = await waitForElement('js-extended-description', 'Your AI Pair Programmer');
-        const scrollYBeforeRequest = window.scrollY;
-        simulateFullInteraction(targetElement);
-        console.log("3. Option selected.");
 
-        // --- KEY SECTION: HIDE LAYER ---
-        await wait(600); // Give the page a moment to save the selection
+        // Block any scroll mutations that GitHub's XHR response handler may trigger
+        const origScrollTo = window.scrollTo.bind(window);
+        const origScroll = window.scroll.bind(window);
+        const origScrollBy = window.scrollBy.bind(window);
+        window.scrollTo = () => {};
+        window.scroll = () => {};
+        window.scrollBy = () => {};
 
-        // Restore scroll position in case GitHub's XHR response handler reset it
-        if (window.scrollY !== scrollYBeforeRequest) {
-            window.scrollTo({ top: scrollYBeforeRequest, behavior: 'instant' });
+        try {
+            simulateFullInteraction(targetElement);
+            console.log("3. Option selected.");
+
+            // --- KEY SECTION: HIDE LAYER ---
+            await wait(600); // Give the page a moment to save the selection
+        } finally {
+            // Always restore native scroll APIs, even if an error occurred
+            window.scrollTo = origScrollTo;
+            window.scroll = origScroll;
+            window.scrollBy = origScrollBy;
         }
 
         console.log("4. Attempting to hide layer...");
