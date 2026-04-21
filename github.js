@@ -409,7 +409,6 @@ function observeVisibility(initialElement) {
         isFixed = false;
         placeholder = null;
         intersectionObserver.observe(el);
-        styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
         reattachDomGuard();
     }
 
@@ -421,8 +420,10 @@ function observeVisibility(initialElement) {
     const styleGuardObserver = new MutationObserver(() => {
         if (!isFixed || isMutating) return;
         if (
-            el.style.position !== 'fixed' ||
-            el.style.getPropertyValue('z-index') !== '9999'
+            el.style.getPropertyValue('position') !== 'fixed' ||
+            el.style.getPropertyValue('z-index') !== '9999' ||
+            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px` ||
+            el.style.getPropertyValue('width') !== `${fixedWidth}px`
         ) {
             applyFixedStyles();
         }
@@ -454,11 +455,15 @@ function observeVisibility(initialElement) {
                     pointer-events: none;
                     flex-shrink: 0;
                 `;
+                if (!el.isConnected || !el.parentNode) {
+                    return;
+                }
                 el.parentNode.insertBefore(placeholder, el);
 
                 el.style.cssText = originalCssText;
                 applyFixedStyles();
 
+                styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
                 intersectionObserver.unobserve(el);
                 intersectionObserver.observe(placeholder);
                 isFixed = true;
@@ -472,7 +477,6 @@ function observeVisibility(initialElement) {
                 placeholder.remove();
                 placeholder = null;
                 intersectionObserver.observe(el);
-                styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
                 isFixed = false;
             }
         },
@@ -480,7 +484,6 @@ function observeVisibility(initialElement) {
     );
 
     intersectionObserver.observe(el);
-    styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
     reattachDomGuard();
 
     return {
