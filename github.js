@@ -377,6 +377,27 @@ function observeVisibility(element) {
     let isFixed = false;
     let placeholder = null;
     let originalCssText = '';
+    let fixedWidth = 0;
+    let isMutating = false;
+
+    function applyFixedStyles() {
+        isMutating = true;
+        element.style.setProperty('position', 'fixed', 'important');
+        element.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`, 'important');
+        element.style.setProperty('width', `${fixedWidth}px`, 'important');
+        element.style.setProperty('z-index', '9999', 'important');
+        isMutating = false;
+    }
+
+    const styleGuardObserver = new MutationObserver(() => {
+        if (!isFixed || isMutating) return;
+        if (
+            element.style.position !== 'fixed' ||
+            element.style.getPropertyValue('z-index') !== '9999'
+        ) {
+            applyFixedStyles();
+        }
+    });
 
     const intersectionObserver = new IntersectionObserver(
         ([entry]) => {
@@ -384,6 +405,7 @@ function observeVisibility(element) {
                 const rect = element.getBoundingClientRect();
                 const computedMargin = getComputedStyle(element).margin;
                 originalCssText = element.style.cssText;
+                fixedWidth = rect.width;
 
                 placeholder = document.createElement('div');
                 placeholder.style.cssText = `
@@ -397,16 +419,17 @@ function observeVisibility(element) {
                 element.parentNode.insertBefore(placeholder, element);
 
                 element.style.cssText = originalCssText;
-                element.style.setProperty('position', 'fixed', 'important');
-                element.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`);
-                element.style.setProperty('width', `${rect.width}px`);
-                element.style.setProperty('z-index', '9999');
+                applyFixedStyles();
+
+                styleGuardObserver.observe(element, { attributes: true, attributeFilter: ['style'] });
 
                 intersectionObserver.unobserve(element);
                 intersectionObserver.observe(placeholder);
                 isFixed = true;
 
             } else if (entry.isIntersecting && isFixed) {
+                styleGuardObserver.disconnect();
+
                 element.style.cssText = originalCssText;
 
                 intersectionObserver.unobserve(placeholder);
@@ -423,6 +446,7 @@ function observeVisibility(element) {
 
     return {
         disconnect() {
+            styleGuardObserver.disconnect();
             intersectionObserver.disconnect();
             if (isFixed && placeholder) {
                 element.style.cssText = originalCssText;
