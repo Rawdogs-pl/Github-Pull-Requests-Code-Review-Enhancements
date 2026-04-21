@@ -114,10 +114,12 @@ async function requestCopilotReview() {
             console.log("3. Option selected.");
 
             // --- KEY SECTION: HIDE LAYER ---
-            await wait(1500); // Give the page a moment to save the selection and process XHR response
+            await wait(600); // Give the page a moment to save the selection
         } finally {
-            // Always remove scroll lock, even if an error occurred
-            window.removeEventListener('scroll', preventScroll, { capture: true });
+            // Remove scroll lock after a delay to cover late-arriving XHR scroll side-effects
+            setTimeout(function() {
+                window.removeEventListener('scroll', preventScroll, { capture: true });
+            }, 5000);
         }
 
         console.log("4. Attempting to hide layer...");
