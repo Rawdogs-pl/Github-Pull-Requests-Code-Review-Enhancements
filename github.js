@@ -373,7 +373,8 @@ async function setAsHidden() {
     isHidingInProgress = false;
 }
 
-function observeVisibility(element) {
+function observeVisibility(initialElement) {
+    let el = initialElement;
     let isFixed = false;
     let placeholder = null;
     let originalCssText = '';
@@ -382,29 +383,66 @@ function observeVisibility(element) {
 
     function applyFixedStyles() {
         isMutating = true;
-        element.style.setProperty('position', 'fixed', 'important');
-        element.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`, 'important');
-        element.style.setProperty('width', `${fixedWidth}px`, 'important');
-        element.style.setProperty('z-index', '9999', 'important');
+        el.style.setProperty('position', 'fixed', 'important');
+        el.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`, 'important');
+        el.style.setProperty('width', `${fixedWidth}px`, 'important');
+        el.style.setProperty('z-index', '9999', 'important');
         isMutating = false;
+    }
+
+    function cleanupFixed() {
+        styleGuardObserver.disconnect();
+        intersectionObserver.disconnect();
+        if (isFixed) {
+            if (placeholder && placeholder.parentNode) {
+                placeholder.remove();
+            }
+            placeholder = null;
+            isFixed = false;
+        }
+    }
+
+    function attachToElement(newEl) {
+        el = newEl;
+        originalCssText = '';
+        fixedWidth = 0;
+        isFixed = false;
+        placeholder = null;
+        intersectionObserver.observe(el);
+        styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+        reattachDomGuard();
+    }
+
+    function reattachDomGuard() {
+        domGuardObserver.disconnect();
+        domGuardObserver.observe(document.body, { childList: true, subtree: true });
     }
 
     const styleGuardObserver = new MutationObserver(() => {
         if (!isFixed || isMutating) return;
         if (
-            element.style.position !== 'fixed' ||
-            element.style.getPropertyValue('z-index') !== '9999'
+            el.style.position !== 'fixed' ||
+            el.style.getPropertyValue('z-index') !== '9999'
         ) {
             applyFixedStyles();
+        }
+    });
+
+    const domGuardObserver = new MutationObserver(() => {
+        if (el.isConnected) return;
+        cleanupFixed();
+        const newEl = document.querySelector('.js-issue-sidebar-form');
+        if (newEl) {
+            attachToElement(newEl);
         }
     });
 
     const intersectionObserver = new IntersectionObserver(
         ([entry]) => {
             if (!entry.isIntersecting && !isFixed) {
-                const rect = element.getBoundingClientRect();
-                const computedMargin = getComputedStyle(element).margin;
-                originalCssText = element.style.cssText;
+                const rect = el.getBoundingClientRect();
+                const computedMargin = getComputedStyle(el).margin;
+                originalCssText = el.style.cssText;
                 fixedWidth = rect.width;
 
                 placeholder = document.createElement('div');
@@ -416,40 +454,42 @@ function observeVisibility(element) {
                     pointer-events: none;
                     flex-shrink: 0;
                 `;
-                element.parentNode.insertBefore(placeholder, element);
+                el.parentNode.insertBefore(placeholder, el);
 
-                element.style.cssText = originalCssText;
+                el.style.cssText = originalCssText;
                 applyFixedStyles();
 
-                styleGuardObserver.observe(element, { attributes: true, attributeFilter: ['style'] });
-
-                intersectionObserver.unobserve(element);
+                intersectionObserver.unobserve(el);
                 intersectionObserver.observe(placeholder);
                 isFixed = true;
 
             } else if (entry.isIntersecting && isFixed) {
                 styleGuardObserver.disconnect();
 
-                element.style.cssText = originalCssText;
+                el.style.cssText = originalCssText;
 
                 intersectionObserver.unobserve(placeholder);
                 placeholder.remove();
                 placeholder = null;
-                intersectionObserver.observe(element);
+                intersectionObserver.observe(el);
+                styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
                 isFixed = false;
             }
         },
         { threshold: 0 }
     );
 
-    intersectionObserver.observe(element);
+    intersectionObserver.observe(el);
+    styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+    reattachDomGuard();
 
     return {
         disconnect() {
+            domGuardObserver.disconnect();
             styleGuardObserver.disconnect();
             intersectionObserver.disconnect();
             if (isFixed && placeholder) {
-                element.style.cssText = originalCssText;
+                el.style.cssText = originalCssText;
                 placeholder.remove();
                 placeholder = null;
                 isFixed = false;
