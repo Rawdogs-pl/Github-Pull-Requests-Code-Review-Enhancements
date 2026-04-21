@@ -422,8 +422,7 @@ function observeVisibility(initialElement) {
         if (
             el.style.getPropertyValue('position') !== 'fixed' ||
             el.style.getPropertyValue('z-index') !== '9999' ||
-            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px` ||
-            el.style.getPropertyValue('width') !== `${fixedWidth}px`
+            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px`
         ) {
             applyFixedStyles();
         }
