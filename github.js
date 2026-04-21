@@ -99,13 +99,15 @@ async function requestCopilotReview() {
 
         const targetElement = await waitForElement('js-extended-description', 'Your AI Pair Programmer');
 
-        // Block any scroll mutations that GitHub's XHR response handler may trigger
-        const origScrollTo = window.scrollTo.bind(window);
-        const origScroll = window.scroll.bind(window);
-        const origScrollBy = window.scrollBy.bind(window);
-        window.scrollTo = () => {};
-        window.scroll = () => {};
-        window.scrollBy = () => {};
+        // Block any scroll mutations that GitHub's XHR response handler may trigger.
+        // Content scripts run in an isolated JS world, so overriding window.scrollTo here
+        // has no effect on the page's own scripts. Instead we freeze the scroll position
+        // by immediately restoring it via a capture-phase scroll listener — this works
+        // because native browser APIs (scrollTo) and DOM events are shared across worlds.
+        const frozenScrollX = window.scrollX;
+        const frozenScrollY = window.scrollY;
+        const preventScroll = () => { window.scrollTo(frozenScrollX, frozenScrollY); };
+        window.addEventListener('scroll', preventScroll, { capture: true });
 
         try {
             simulateFullInteraction(targetElement);
@@ -114,10 +116,8 @@ async function requestCopilotReview() {
             // --- KEY SECTION: HIDE LAYER ---
             await wait(600); // Give the page a moment to save the selection
         } finally {
-            // Always restore native scroll APIs, even if an error occurred
-            window.scrollTo = origScrollTo;
-            window.scroll = origScroll;
-            window.scrollBy = origScrollBy;
+            // Always remove scroll lock, even if an error occurred
+            window.removeEventListener('scroll', preventScroll, { capture: true });
         }
 
         console.log("4. Attempting to hide layer...");
