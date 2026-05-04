@@ -119,7 +119,7 @@ async function requestCopilotReview() {
             // Remove scroll lock after a delay to cover late-arriving XHR scroll side-effects
             setTimeout(function() {
                 window.removeEventListener('scroll', preventScroll, { capture: true });
-            }, 5000);
+            }, 2500);
         }
 
         console.log("4. Attempting to hide layer...");
