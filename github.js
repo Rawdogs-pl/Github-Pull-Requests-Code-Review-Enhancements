@@ -143,6 +143,7 @@ async function requestCopilotReview() {
 
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
+        throw error;
     }
 }
 
@@ -595,7 +596,24 @@ function createControlPanel() {
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
     document.getElementById('mark-as-ready-btn').addEventListener('click', triggerMarkAsReady);
-    document.getElementById('request-copilot-review-btn').addEventListener('click', requestCopilotReview);
+    document.getElementById('request-copilot-review-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('request-copilot-review-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Requesting…';
+        try {
+            await requestCopilotReview();
+            btn.textContent = '✓ Review requested';
+            btn.classList.add('copilot-btn-success');
+            setTimeout(() => {
+                btn.textContent = 'Request Copilot review';
+                btn.classList.remove('copilot-btn-success');
+                btn.disabled = false;
+            }, 3000);
+        } catch {
+            btn.textContent = 'Request Copilot review';
+            btn.disabled = false;
+        }
+    });
 
     startReadyForReviewMonitoring();
     startButtonCountsMonitoring();

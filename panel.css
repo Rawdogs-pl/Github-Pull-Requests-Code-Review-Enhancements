@@ -139,7 +139,13 @@
     background-color: #f6f8fa;
 }
 
-#github-pr-control-panel button.disabled:hover,
-#github-pr-control-panel button:disabled:hover {
-    background-color: #f6f8fa;
+#github-pr-control-panel button.copilot-btn-success {
+    background-color: #2da44e;
+    color: #ffffff;
+    border-color: #2da44e;
 }
+
+#github-pr-control-panel button.copilot-btn-success:hover {
+    background-color: #2da44e;
+}
+
