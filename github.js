@@ -3,7 +3,9 @@ let observer = null;
 let isHidingInProgress = false;
 let readyForReviewObserver = null;
 let buttonCountsObserver = null;
+let sidebarVisibilityObserver = null;
 const DOM_UPDATE_DELAY_MS = 400;
+const STICKY_SIDEBAR_TOP_OFFSET = 80;
 function clickLoadMoreButtons() {
     const buttons = document.querySelectorAll('button.ajax-pagination-btn');
     buttons.forEach(button => {
@@ -50,7 +52,7 @@ async function requestCopilotReview() {
                 : new MouseEvent(evt, { bubbles: true, cancelable: true, view: window });
             el.dispatchEvent(event);
         });
-        if (el.focus) el.focus();
+        if (el.focus) el.focus({ preventScroll: true });
     };
 
     try {
@@ -96,11 +98,29 @@ async function requestCopilotReview() {
         };
 
         const targetElement = await waitForElement('js-extended-description', 'Your AI Pair Programmer');
-        simulateFullInteraction(targetElement);
-        console.log("3. Option selected.");
 
-        // --- KEY SECTION: HIDE LAYER ---
-        await wait(600); // Give the page a moment to save the selection
+        // Block any scroll mutations that GitHub's XHR response handler may trigger.
+        // Content scripts run in an isolated JS world, so overriding window.scrollTo here
+        // has no effect on the page's own scripts. Instead we freeze the scroll position
+        // by immediately restoring it via a capture-phase scroll listener — this works
+        // because native browser APIs (scrollTo) and DOM events are shared across worlds.
+        const frozenScrollX = window.scrollX;
+        const frozenScrollY = window.scrollY;
+        const preventScroll = () => { window.scrollTo(frozenScrollX, frozenScrollY); };
+        window.addEventListener('scroll', preventScroll, { capture: true });
+
+        try {
+            simulateFullInteraction(targetElement);
+            console.log("3. Option selected.");
+
+            // --- KEY SECTION: HIDE LAYER ---
+            await wait(600); // Give the page a moment to save the selection
+        } finally {
+            // Remove scroll lock after a delay to cover late-arriving XHR scroll side-effects
+            setTimeout(function() {
+                window.removeEventListener('scroll', preventScroll, { capture: true });
+            }, 2500);
+        }
 
         console.log("4. Attempting to hide layer...");
 
@@ -123,6 +143,7 @@ async function requestCopilotReview() {
 
     } catch (error) {
         console.error("%cError: " + error.message, "color: red;");
+        throw error;
     }
 }
 
@@ -353,6 +374,133 @@ async function setAsHidden() {
     isHidingInProgress = false;
 }
 
+function observeVisibility(initialElement) {
+    let el = initialElement;
+    let isFixed = false;
+    let placeholder = null;
+    let originalCssText = '';
+    let fixedWidth = 0;
+    let isMutating = false;
+
+    function applyFixedStyles() {
+        isMutating = true;
+        el.style.setProperty('position', 'fixed', 'important');
+        el.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`, 'important');
+        el.style.setProperty('width', `${fixedWidth}px`, 'important');
+        el.style.setProperty('z-index', '9999', 'important');
+        isMutating = false;
+    }
+
+    function cleanupFixed() {
+        styleGuardObserver.disconnect();
+        intersectionObserver.disconnect();
+        if (isFixed) {
+            if (placeholder && placeholder.parentNode) {
+                placeholder.remove();
+            }
+            placeholder = null;
+            isFixed = false;
+        }
+    }
+
+    function attachToElement(newEl) {
+        el = newEl;
+        originalCssText = '';
+        fixedWidth = 0;
+        isFixed = false;
+        placeholder = null;
+        intersectionObserver.observe(el);
+        reattachDomGuard();
+    }
+
+    function reattachDomGuard() {
+        domGuardObserver.disconnect();
+        domGuardObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    const styleGuardObserver = new MutationObserver(() => {
+        if (!isFixed || isMutating) return;
+        if (
+            el.style.getPropertyValue('position') !== 'fixed' ||
+            el.style.getPropertyValue('z-index') !== '9999' ||
+            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px`
+        ) {
+            applyFixedStyles();
+        }
+    });
+
+    const domGuardObserver = new MutationObserver(() => {
+        if (el.isConnected) return;
+        cleanupFixed();
+        const newEl = document.querySelector('.js-issue-sidebar-form');
+        if (newEl) {
+            attachToElement(newEl);
+        }
+    });
+
+    const intersectionObserver = new IntersectionObserver(
+        ([entry]) => {
+            if (!entry.isIntersecting && !isFixed) {
+                const rect = el.getBoundingClientRect();
+                const computedMargin = getComputedStyle(el).margin;
+                originalCssText = el.style.cssText;
+                fixedWidth = rect.width;
+
+                placeholder = document.createElement('div');
+                placeholder.style.cssText = `
+                    height: ${rect.height}px;
+                    width: ${rect.width}px;
+                    margin: ${computedMargin};
+                    visibility: hidden;
+                    pointer-events: none;
+                    flex-shrink: 0;
+                `;
+                if (!el.isConnected || !el.parentNode) {
+                    return;
+                }
+                el.parentNode.insertBefore(placeholder, el);
+
+                el.style.cssText = originalCssText;
+                applyFixedStyles();
+
+                styleGuardObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+                intersectionObserver.unobserve(el);
+                intersectionObserver.observe(placeholder);
+                isFixed = true;
+
+            } else if (entry.isIntersecting && isFixed) {
+                styleGuardObserver.disconnect();
+
+                el.style.cssText = originalCssText;
+
+                intersectionObserver.unobserve(placeholder);
+                placeholder.remove();
+                placeholder = null;
+                intersectionObserver.observe(el);
+                isFixed = false;
+            }
+        },
+        { threshold: 0 }
+    );
+
+    intersectionObserver.observe(el);
+    reattachDomGuard();
+
+    return {
+        disconnect() {
+            domGuardObserver.disconnect();
+            styleGuardObserver.disconnect();
+            intersectionObserver.disconnect();
+            if (isFixed && placeholder) {
+                el.style.cssText = originalCssText;
+                placeholder.remove();
+                placeholder = null;
+                isFixed = false;
+            }
+        },
+    };
+}
+
 function createControlPanel() {
     // Only create panel on actual PR pages, not on agents pages
     // Uses shared URL matcher from urlMatchers.js
@@ -448,16 +596,42 @@ function createControlPanel() {
     document.getElementById('resolve-all-btn').addEventListener('click', resolveAllDiscussions);
     document.getElementById('set-hidden-btn').addEventListener('click', setAsHidden);
     document.getElementById('mark-as-ready-btn').addEventListener('click', triggerMarkAsReady);
-    document.getElementById('request-copilot-review-btn').addEventListener('click', requestCopilotReview);
+    document.getElementById('request-copilot-review-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('request-copilot-review-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Requesting…';
+        try {
+            await requestCopilotReview();
+            btn.textContent = '✓ Review requested';
+            btn.classList.add('copilot-btn-success');
+            setTimeout(() => {
+                btn.textContent = 'Request Copilot review';
+                btn.classList.remove('copilot-btn-success');
+                btn.disabled = false;
+            }, 3000);
+        } catch {
+            btn.textContent = 'Request Copilot review';
+            btn.disabled = false;
+        }
+    });
 
     startReadyForReviewMonitoring();
     startButtonCountsMonitoring();
+
+    const sidebar = document.querySelector('.js-issue-sidebar-form');
+    if (sidebar) {
+        sidebarVisibilityObserver = observeVisibility(sidebar);
+    }
 }
 
 function removeControlPanel() {
     stopAutoLoadMore();
     stopReadyForReviewMonitoring();
     stopButtonCountsMonitoring();
+    if (sidebarVisibilityObserver) {
+        sidebarVisibilityObserver.disconnect();
+        sidebarVisibilityObserver = null;
+    }
     const panel = document.getElementById('github-pr-control-panel');
     if (panel) {
         panel.remove();
@@ -468,6 +642,17 @@ function handleURLChange() {
     if (isGitHubPRPage(window.location.pathname)) {
         if (!document.getElementById('github-pr-control-panel')) {
             createControlPanel();
+        } else {
+            // Re-select the sidebar on every PR navigation (SPA PR→PR) so the observer
+            // is always attached to the current page's sidebar element.
+            if (sidebarVisibilityObserver) {
+                sidebarVisibilityObserver.disconnect();
+                sidebarVisibilityObserver = null;
+            }
+            const sidebar = document.querySelector('.js-issue-sidebar-form');
+            if (sidebar) {
+                sidebarVisibilityObserver = observeVisibility(sidebar);
+            }
         }
     } else {
         removeControlPanel();
