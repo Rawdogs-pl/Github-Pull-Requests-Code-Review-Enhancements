@@ -388,7 +388,12 @@ function observeVisibility(initialElement) {
         el.style.setProperty('top', `${STICKY_SIDEBAR_TOP_OFFSET}px`, 'important');
         el.style.setProperty('width', `${fixedWidth}px`, 'important');
         el.style.setProperty('z-index', '9999', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
         isMutating = false;
+    }
+
+    function applyHiddenStyles() {
+        el.style.setProperty('visibility', 'hidden', 'important');
     }
 
     function cleanupFixed() {
@@ -409,6 +414,7 @@ function observeVisibility(initialElement) {
         fixedWidth = 0;
         isFixed = false;
         placeholder = null;
+        applyHiddenStyles();
         intersectionObserver.observe(el);
         reattachDomGuard();
     }
@@ -423,7 +429,9 @@ function observeVisibility(initialElement) {
         if (
             el.style.getPropertyValue('position') !== 'fixed' ||
             el.style.getPropertyValue('z-index') !== '9999' ||
-            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px`
+            el.style.getPropertyValue('top') !== `${STICKY_SIDEBAR_TOP_OFFSET}px` ||
+            el.style.getPropertyValue('width') !== `${fixedWidth}px` ||
+            el.style.getPropertyValue('visibility') !== 'visible'
         ) {
             applyFixedStyles();
         }
@@ -472,6 +480,7 @@ function observeVisibility(initialElement) {
                 styleGuardObserver.disconnect();
 
                 el.style.cssText = originalCssText;
+                applyHiddenStyles();
 
                 intersectionObserver.unobserve(placeholder);
                 placeholder.remove();
@@ -484,6 +493,7 @@ function observeVisibility(initialElement) {
     );
 
     intersectionObserver.observe(el);
+    applyHiddenStyles();
     reattachDomGuard();
 
     return {
@@ -497,6 +507,7 @@ function observeVisibility(initialElement) {
                 placeholder = null;
                 isFixed = false;
             }
+            applyHiddenStyles();
         },
     };
 }
