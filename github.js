@@ -139,9 +139,6 @@ async function requestCopilotReview() {
             filterField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         }
 
-        // Method D: Force-hide the floating layer via visibility in case the above methods fail
-        menuContainer.style.setProperty('visibility', 'hidden', 'important');
-
         console.log("%c5. Done! Layer should disappear.", "color: green; font-weight: bold;");
 
     } catch (error) {
