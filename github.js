@@ -185,19 +185,15 @@ function stopReadyForReviewMonitoring() {
     }
 }
 
+function getResolveDiscussionButtons() {
+    return document.querySelectorAll(
+        '.js-resolvable-timeline-thread-form button[value="resolve"], ' +
+        '.js-resolvable-timeline-thread-container button[form^="resolve-thread-form-"][type="submit"]'
+    );
+}
+
 function countResolvableDiscussions() {
-    const forms = document.querySelectorAll('.js-resolvable-timeline-thread-form');
-    let count = 0;
-    forms.forEach(form => {
-        const buttons = form.querySelectorAll('button[type="submit"]');
-        buttons.forEach(btn => {
-            const buttonText = btn.textContent.trim().toLowerCase();
-            if (buttonText === 'resolve conversation' || buttonText.startsWith('resolve ')) {
-                count++;
-            }
-        });
-    });
-    return count;
+    return getResolveDiscussionButtons().length;
 }
 
 function countHideableComments() {
@@ -251,18 +247,7 @@ function startButtonCountsMonitoring() {
 }
 
 function resolveAllDiscussions() {
-    // Note: Text matching may not work in all GitHub language locales.
-    // We check for buttons starting with "Resolve " to cover most variations.
-    const forms = document.querySelectorAll('.js-resolvable-timeline-thread-form');
-    forms.forEach(form => {
-        const buttons = form.querySelectorAll('button[type="submit"]');
-        buttons.forEach(btn => {
-            const buttonText = btn.textContent.trim().toLowerCase();
-            if (buttonText === 'resolve conversation' || buttonText.startsWith('resolve ')) {
-                btn.click();
-            }
-        });
-    });
+    getResolveDiscussionButtons().forEach(button => button.click());
 }
 
 function isSafeToHide(menuBtn) {
